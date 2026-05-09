@@ -1,0 +1,202 @@
+name: CI - Main Pipeline
+
+on:
+  push:
+    branches: [main, master, '260429-feat-avatarcode-spec']
+  pull_request:
+    branches: [main, master]
+
+env:
+  NODE_VERSION: '20'
+  ELECTRON_VERSION: '30'
+
+jobs:
+  # Job 1: 代码质量检查
+  lint:
+    name: 🔍 Lint & Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📦 Install Dependencies
+        run: npm ci --frozen-lockfile
+        
+      - name: ✅ ESLint
+        run: npm run lint
+        
+      - name: 📝 Prettier Check
+        run: npm run format:check
+        
+      - name: 🔍 TypeScript Type Check
+        run: npm run typecheck
+
+  # Job 2: 单元测试
+  test-unit:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: lint
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📦 Install Dependencies
+        run: npm ci --frozen-lockfile
+        
+      - name: 🧪 Run Unit Tests
+        run: npm run test
+        
+      - name: 📊 Test Coverage Report
+        run: npm run test:coverage
+        
+      - name: 📤 Upload Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
+          fail_ci_if_error: false
+
+  # Job 3: 生产构建 (Frontend)
+  build-frontend:
+    name: 🏗️ Build Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [lint, test-unit]
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📦 Install Dependencies
+        run: npm ci --frozen-lockfile
+        
+      - name: 🏗️ Build Frontend
+        run: npm run build
+        env:
+          NODE_ENV: production
+          
+      - name: 📤 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: dist/
+          retention-days: 7
+
+  # Job 4: 电子构建 (Electron)
+  build-electron:
+    name: 🏗️ Build Electron
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: build-frontend
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📦 Install Dependencies
+        run: npm ci --frozen-lockfile
+        
+      - name: 📥 Download Frontend Build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: dist/
+          
+      - name: 🏗️ Compile Electron
+        run: npx tsc -p electron/tsconfig.json
+        
+      - name: 📤 Upload Electron Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-build
+          path: electron/dist/
+          retention-days: 7
+
+  # Job 5: 集成测试
+  test-e2e:
+    name: 🔬 E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [build-frontend, build-electron]
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📦 Install Dependencies
+        run: npm ci --frozen-lockfile
+        
+      - name: 📥 Download Builds
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          
+      - name: 🧪 Run E2E Tests
+        run: |
+          echo "E2E tests to be implemented in v1.2"
+          # 待 v1.2 实现 Playwright 集成
+          
+    continue-on-error: true
+    if: always()
+
+  # Job 6: 安全检查
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build-frontend
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📦 Install Dependencies
+        run: npm ci --frozen-lockfile
+        
+      - name: 🔍 NPM Audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+        
+      - name: 🛡️ CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+

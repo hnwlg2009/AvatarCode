@@ -1,0 +1,51 @@
+.workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: #0d0d0d;
+}
+
+.editorArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fileTab {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #333;
+}
+
+.fileName {
+  font-size: 0.875rem;
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.emptyState {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #0d0d0d;
+}
+
+.emptyStateContent {
+  text-align: center;
+  color: #666;
+}
+
+.emptyStateContent h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #999;
+}
+
+.emptyStateContent p {
+  font-size: 0.875rem;
+}

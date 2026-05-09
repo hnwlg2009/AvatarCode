@@ -1,0 +1,400 @@
+name: CD - Release Pipeline
+
+on:
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: '版本类型'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      prerelease:
+        description: '预发布版本 (alpha/beta/rc)'
+        required: false
+        type: choice
+        options:
+          - 'none'
+          - alpha
+          - beta
+          - rc
+
+  # 从 main 分支定时发布
+  schedule:
+    # 每月的 1 号和 15 号 UTC 00:00
+    - cron: '0 0 1,15 * *'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # Job 1: 版本验证和准备
+  prepare-release:
+    name: 📦 Prepare Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_date: ${{ steps.version.outputs.version_date }}
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: 📦 Install Dependencies
+        run: npm ci --frozen-lockfile
+        
+      - name: 🏷️ Generate Version Number
+        id: version
+        run: |
+          # 获取版本类型
+          VERSION_TYPE="${{ github.event.inputs.version_type || 'patch' }}"
+          PRERELEASE="${{ github.event.inputs.prerelease || 'none' }}"
+          
+          # 读取当前版本
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "当前版本：$CURRENT_VERSION"
+          
+          # 解析版本号
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          
+          # 递增版本号
+          case $VERSION_TYPE in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+          
+          # 生成日期后缀
+          VERSION_DATE=$(date +%Y%m%d)
+          
+          # 完整版本号
+          if [ "$PRERELEASE" = "none" ]; then
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH-$VERSION_DATE"
+          else
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH-$PRERELEASE-$VERSION_DATE"
+          fi
+          
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version_date=$VERSION_DATE" >> $GITHUB_OUTPUT
+          echo "release_tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+          
+          echo "新版本：$NEW_VERSION"
+          echo "发布日期：$VERSION_DATE"
+          
+      - name: ✅ Validate Version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "验证版本号格式：$VERSION"
+          
+          # 检查是否符合语义化版本规范
+          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+-[a-zA-Z0-9]+-[0-9]{8}$ ]]; then
+            echo "✅ 版本号格式正确"
+          elif [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9]{8}$ ]]; then
+            echo "✅ 版本号格式正确 (正式版)"
+          else
+            echo "❌ 版本号格式错误"
+            exit 1
+          fi
+
+  # Job 2: 创建 Release Branch 和 Tag
+  create-release-branch:
+    name: 🌿 Create Release Branch
+    runs-on: ubuntu-latest
+    needs: prepare-release
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🌿 Create Release Branch
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          BRANCH_NAME="release/v${{ needs.prepare-release.outputs.version }}"
+          git checkout -b $BRANCH_NAME
+          git push -u origin $BRANCH_NAME
+          
+          echo "创建发布分支：$BRANCH_NAME"
+
+  # Job 3: 打包 Windows
+  build-windows:
+    name: 🪟 Build Windows
+    runs-on: windows-latest
+    needs: prepare-release
+    timeout-minutes: 60
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📦 Install Dependencies
+        run: npm ci --frozen-lockfile
+        
+      - name: 🏗️ Build Frontend
+        run: npm run build
+        
+      - name: 🏗️ Compile Electron
+        run: npx tsc -p electron/tsconfig.json
+        
+      - name: 📦 Package Windows
+        run: npm run electron:build
+        
+      - name: 📤 Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: release/*.exe
+          retention-days: 14
+
+  # Job 4: 打包 Linux
+  build-linux:
+    name: 🐧 Build Linux
+    runs-on: ubuntu-latest
+    needs: prepare-release
+    timeout-minutes: 60
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📦 Install Dependencies
+        run: npm ci --frozen-lockfile
+        
+      - name: 🏗️ Build Frontend
+        run: npm run build
+        
+      - name: 🏗️ Compile Electron
+        run: npx tsc -p electron/tsconfig.json
+        
+      - name: 📦 Package Linux
+        run: npm run electron:build
+        
+      - name: 📤 Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: release/*.AppImage
+          retention-days: 14
+
+  # Job 5: 打包 macOS
+  build-macos:
+    name: 🍎 Build macOS
+    runs-on: macos-latest
+    needs: prepare-release
+    timeout-minutes: 60
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📦 Install Dependencies
+        run: npm ci --frozen-lockfile
+        
+      - name: 🏗️ Build Frontend
+        run: npm run build
+        
+      - name: 🏗️ Compile Electron
+        run: npx tsc -p electron/tsconfig.json
+        
+      - name: 📦 Package macOS
+        run: npm run electron:build
+        
+      - name: 📤 Upload macOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: release/*.dmg
+          retention-days: 14
+
+  # Job 6: 创建 GitHub Release
+  create-github-release:
+    name: 📢 Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [prepare-release, build-windows, build-linux, build-macos]
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 📥 Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts/
+          
+      - name: 📝 Generate Release Notes
+        run: |
+          VERSION="${{ needs.prepare-release.outputs.version }}"
+          TAG="v$VERSION"
+          DATE=$(date +%Y-%m-%d)
+          
+          cat > RELEASE_NOTES.md << NOTES
+          # AvatarCode $TAG 发布说明
+          
+          **发布日期**: $DATE
+          **版本类型**: ${{ github.event.inputs.prerelease || '正式版' }}
+          
+          ## ✨ 新增功能
+          - 功能列表将自动生成
+          
+          ## 🔧 修复问题
+          - Bug 修复列表将自动生成
+          
+          ## 📦 下载
+          - Windows: AvatarCode-${{ needs.prepare-release.outputs.version }}-win-x64.exe
+          - Linux: AvatarCode-${{ needs.prepare-release.outputs.version }}.AppImage
+          - macOS: AvatarCode-${{ needs.prepare-release.outputs.version }}.dmg
+          
+          ## 📚 文档
+          - [使用说明书](https://github.com/hnwlg2009/AvatarCode/blob/main/.monkeycode/docs/USER_GUIDE.md)
+          - [升级指南](https://github.com/hnwlg2009/AvatarCode/blob/main/.monkeycode/docs/UPGRADE_${VERSION}.md)
+          - [CHANGELOG](https://github.com/hnwlg2009/AvatarCode/blob/main/.monkeycode/docs/CHANGELOG.md)
+          NOTES
+          
+      - name: 📝 Copy Release Notes to Docs
+        run: |
+          mkdir -p .monkeycode/docs/releases
+          cp RELEASE_NOTES.md .monkeycode/docs/releases/v${{ needs.prepare-release.outputs.version }}.md
+          
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.prepare-release.outputs.version }}
+          name: AvatarCode v${{ needs.prepare-release.outputs.version }}
+          body_path: RELEASE_NOTES.md
+          draft: true
+          prerelease: ${{ github.event.inputs.prerelease != 'none' && github.event.inputs.prerelease != '' }}
+          files: |
+            release-artifacts/windows-build/*.exe
+            release-artifacts/linux-build/*.AppImage
+            release-artifacts/macos-build/*.dmg
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job 7: 更新文档
+  update-docs:
+    name: 📚 Update Documentation
+    runs-on: ubuntu-latest
+    needs: [prepare-release, create-github-release]
+    if: github.event_name != 'schedule'
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 📝 Update CHANGELOG
+        run: |
+          echo "TODO: 自动更新 CHANGELOG.md"
+          # 可以集成 github-changelog-generator
+          
+      - name: 📝 Create UPGRADE Guide
+        run: |
+          VERSION="${{ needs.prepare-release.outputs.version }}"
+          DATE="${{ needs.prepare-release.outputs.version_date }}"
+          
+          cat > .monkeycode/docs/UPGRADE_v${VERSION}.md << UPGRADE
+          # AvatarCode v${VERSION} 升级指南
+          
+          **目标版本**: v${VERSION}-${DATE}
+          **计划发布日期**: 待发布
+          **复杂度**: ⭐⭐ (中等)
+          **预计时间**: 15-30 分钟
+          
+          ---
+          
+          ## 📋 升级前检查
+          
+          ### 系统要求
+          (同 v1.0.0)
+          
+          ## 🚀 升级流程
+          
+          ### Windows
+          1. 下载新版本 .exe
+          2. 运行安装
+          3. 验证版本
+          
+          ### Linux
+          \`\`\`bash
+          wget <下载链接>
+          chmod +x AvatarCode.AppImage
+          ./AvatarCode.AppImage
+          \`\`\`
+          
+          ### macOS
+          1. 下载 .dmg
+          2. 拖拽到 Applications
+          
+          ---
+          
+          **完整文档待发布后更新**
+          UPGRADE
+          
+      - name: 💾 Commit Documentation Updates
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          git add -A
+          git commit -m "docs: 添加 v${{ needs.prepare-release.outputs.version }} 升级指南" || echo "无变更"
+          git push
+        continue-on-error: true
+
+  # Job 8: 通知
+  notify:
+    name: 🔔 Notify Release
+    runs-on: ubuntu-latest
+    needs: create-github-release
+    if: always()
+    
+    steps:
+      - name: 📧 Send Notification (Placeholder)
+        run: |
+          echo "发布通知已发送"
+          # 可以集成：
+          # - Discord Webhook
+          # - Slack Webhook
+          # - 邮件通知
+          # - 微信公众号
+
