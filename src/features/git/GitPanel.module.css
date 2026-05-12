@@ -1,0 +1,259 @@
+.gitPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-panel);
+}
+
+.loading {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.notRepo {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* Branch Bar */
+.branchBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-panel-secondary);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.branchIcon {
+  font-size: 14px;
+}
+
+.branchName {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ahead,
+.behind {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: white;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tab.active {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+}
+
+/* File List */
+.changesTab,
+.historyTab,
+.branchesTab {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-panel);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.fileItem:hover {
+  background: var(--bg-hover);
+}
+
+.fileStatus {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.fileStatus.modified {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.fileStatus.added {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.fileStatus.deleted {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.filePath {
+  flex: 1;
+  color: var(--text-primary);
+  font-family: 'Monaco', 'Courier New', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stageButton {
+  padding: 4px 8px;
+  font-size: 11px;
+  background: var(--bg-panel-secondary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stageButton:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+/* Commit Area */
+.commitArea {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.commitMessage {
+  width: 100%;
+  padding: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  resize: none;
+  margin-bottom: 8px;
+}
+
+.commitMessage:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.commitButton {
+  width: 100%;
+  padding: 8px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.commitButton:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.commitButton:disabled {
+  background: var(--bg-disabled);
+  cursor: not-allowed;
+}
+
+/* Commit History */
+.commitItem {
+  padding: 12px;
+  background: var(--bg-panel);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  border-left: 3px solid var(--accent);
+}
+
+.commitHash {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.commitMessage {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.commitMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Branches */
+.branchItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-panel);
+  border-radius: 4px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 13px;
+}
+
+.branchItem:hover {
+  background: var(--bg-hover);
+}
+
+.branchItem.current {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid var(--accent);
+}
+
+.currentLabel {
+  margin-left: auto;
+  color: var(--accent);
+  font-size: 11px;
+}
