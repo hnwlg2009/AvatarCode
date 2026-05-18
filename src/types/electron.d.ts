@@ -24,6 +24,7 @@ export interface ElectronAPI {
     chat: (messages: any[], config?: any) => Promise<{ success: boolean; content?: string; error?: string }>;
     chatStream: (messages: any[], config?: any) => Promise<{ success: boolean; content?: string; error?: string }>;
   };
+  send: (channel: string, ...args: any[]) => void;
 }
 
 declare global {

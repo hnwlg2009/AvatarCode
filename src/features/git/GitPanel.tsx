@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GitService, GitStatus, GitCommit, GitBranch } from '../../services/GitService';
 import styles from './GitPanel.module.css';
 
@@ -7,6 +8,7 @@ interface GitPanelProps {
 }
 
 export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
+  const { t } = useTranslation();
   const [gitService] = useState<GitService>(() => new GitService(repoPath));
   const [status, setStatus] = useState<GitStatus | null>(null);
   const [commits, setCommits] = useState<GitCommit[]>([]);
@@ -101,13 +103,13 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
   };
 
   if (isLoading) {
-    return <div className={styles.loading}>Loading Git...</div>;
+    return <div className={styles.loading}>{t('git.loading')}</div>;
   }
 
   if (!status) {
     return (
       <div className={styles.notRepo}>
-        <p>This is not a Git repository</p>
+        <p>{t('git.notRepo')}</p>
       </div>
     );
   }
@@ -128,19 +130,19 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
           className={`${styles.tab} ${activeTab === 'changes' ? styles.active : ''}`}
           onClick={() => setActiveTab('changes')}
         >
-          Changes ({status.files.length})
+          {t('git.changes')} ({status.files.length})
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'history' ? styles.active : ''}`}
           onClick={() => setActiveTab('history')}
         >
-          History
+          {t('git.history')}
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'branches' ? styles.active : ''}`}
           onClick={() => setActiveTab('branches')}
         >
-          Branches
+          {t('git.branches')}
         </button>
       </div>
 
@@ -171,7 +173,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
                       : handleStageFile(file.path)
                   }
                 >
-                  {selectedFiles.includes(file.path) ? 'Unstage' : 'Stage'}
+                  {selectedFiles.includes(file.path) ? t('git.unstage') : t('git.stage')}
                 </button>
               </div>
             ))}
@@ -181,7 +183,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
           <div className={styles.commitArea}>
             <textarea
               className={styles.commitMessage}
-              placeholder="Commit message..."
+              placeholder={t('git.commitPlaceholder')}
               value={commitMessage}
               onChange={(e) => setCommitMessage(e.target.value)}
               rows={3}
@@ -191,7 +193,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
               onClick={handleCommit}
               disabled={!commitMessage.trim() || selectedFiles.length === 0}
             >
-              Commit
+              {t('git.commit')}
             </button>
           </div>
         </div>
@@ -224,7 +226,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
             >
               <span className={styles.branchIcon}>{branch.current ? '✓' : '🌿'}</span>
               <span className={styles.branchName}>{branch.name}</span>
-              {branch.current && <span className={styles.currentLabel}>(current)</span>}
+              {branch.current && <span className={styles.currentLabel}>{t('git.current')}</span>}
             </div>
           ))}
         </div>

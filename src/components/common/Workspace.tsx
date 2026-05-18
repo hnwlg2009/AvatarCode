@@ -1,4 +1,5 @@
 import React, { useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CodeEditor, CodeEditorRef } from '../editor';
 import { useTabManagerStore } from '../../stores/tabManagerStore';
 import fileSystemService from '../../services/FileSystemService';
@@ -6,6 +7,7 @@ import { TabBar } from './TabBar';
 import styles from './Workspace.module.css';
 
 export const Workspace: React.FC = () => {
+  const { t } = useTranslation();
   const editorRef = useRef<CodeEditorRef>(null);
 
   const {
@@ -134,20 +136,20 @@ export const Workspace: React.FC = () => {
         ) : (
           <div className={styles.emptyState}>
             <div className={styles.emptyStateContent}>
-              <h2>打开文件开始编辑</h2>
-              <p>使用 Ctrl+O 打开文件，或拖放文件到此处</p>
+              <h2>{t('workspace.emptyTitle')}</h2>
+              <p>{t('workspace.emptyHint')}</p>
               <div className={styles.shortcuts}>
                 <div className={styles.shortcutItem}>
                   <kbd>Ctrl+O</kbd>
-                  <span>打开文件</span>
+                  <span>{t('workspace.openFile')}</span>
                 </div>
                 <div className={styles.shortcutItem}>
                   <kbd>Ctrl+S</kbd>
-                  <span>保存文件</span>
+                  <span>{t('workspace.saveFile')}</span>
                 </div>
               </div>
               <button className={styles.openButton} onClick={handleOpenFile}>
-                选择文件
+                {t('workspace.selectFile')}
               </button>
             </div>
           </div>

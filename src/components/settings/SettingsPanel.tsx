@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GitSettings } from '../../features/git/settings/GitSettings';
 import { EditorSettings } from './EditorSettings';
 import { AppearanceSettings } from './AppearanceSettings';
 import { WorkspaceSettings } from './WorkspaceSettings';
+import { GeneralSettings } from './GeneralSettings';
 import styles from './SettingsPanel.module.css';
 
-type SettingsTab = 'editor' | 'git' | 'appearance' | 'workspace';
+type SettingsTab = 'editor' | 'git' | 'appearance' | 'workspace' | 'general';
 
 interface SettingsPanelProps {
   onClose?: () => void;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingsTab>('editor');
 
   return (
     <div className={styles.settingsPanel}>
       <div className={styles.header}>
-        <h2>Settings</h2>
+        <h2>{t('settings.title')}</h2>
         <button className={styles.closeBtn} onClick={onClose}>
           ✕
         </button>
@@ -27,37 +30,45 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         <aside className={styles.sidebar}>
           <nav className={styles.nav}>
             <button
+              className={`${styles.navItem} ${activeTab === 'general' ? styles.active : ''}`}
+              onClick={() => setActiveTab('general')}
+            >
+              <span className={styles.navIcon}>🌐</span>
+              <span>{t('settings.general')}</span>
+            </button>
+            <button
               className={`${styles.navItem} ${activeTab === 'editor' ? styles.active : ''}`}
               onClick={() => setActiveTab('editor')}
             >
               <span className={styles.navIcon}>📝</span>
-              <span>Editor</span>
+              <span>{t('settings.editor')}</span>
             </button>
             <button
               className={`${styles.navItem} ${activeTab === 'git' ? styles.active : ''}`}
               onClick={() => setActiveTab('git')}
             >
               <span className={styles.navIcon}>🌿</span>
-              <span>Git</span>
+              <span>{t('settings.git')}</span>
             </button>
             <button
               className={`${styles.navItem} ${activeTab === 'workspace' ? styles.active : ''}`}
               onClick={() => setActiveTab('workspace')}
             >
               <span className={styles.navIcon}>📁</span>
-              <span>Workspace</span>
+              <span>{t('settings.workspace')}</span>
             </button>
             <button
               className={`${styles.navItem} ${activeTab === 'appearance' ? styles.active : ''}`}
               onClick={() => setActiveTab('appearance')}
             >
               <span className={styles.navIcon}>🎨</span>
-              <span>Appearance</span>
+              <span>{t('settings.appearance')}</span>
             </button>
           </nav>
         </aside>
 
         <main className={styles.main}>
+          {activeTab === 'general' && <GeneralSettings />}
           {activeTab === 'editor' && <EditorSettings />}
           {activeTab === 'git' && <GitSettings />}
           {activeTab === 'workspace' && <WorkspaceSettings />}

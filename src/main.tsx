@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles/global.css';
+import './i18n';
 
 // 检查 Electron API
 if (window.electronAPI) {

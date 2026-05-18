@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSettingsStore from '../../stores/settingsStore';
 import fileSystemService from '../../services/FileSystemService';
 import styles from './PluginPanel.module.css';
@@ -13,6 +14,7 @@ interface PluginInfo {
 }
 
 export const PluginPanel: React.FC = () => {
+  const { t } = useTranslation();
   const [plugins, setPlugins] = useState<PluginInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,10 +74,10 @@ export const PluginPanel: React.FC = () => {
   return (
     <div className={styles.pluginPanel}>
       <div className={styles.header}>
-        <h2>插件市场</h2>
+        <h2>{t('plugins.title')}</h2>
         <input
           type="text"
-          placeholder="搜索插件..."
+          placeholder={t('plugins.searchPlaceholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={styles.searchInput}
@@ -83,7 +85,7 @@ export const PluginPanel: React.FC = () => {
       </div>
 
       <div className={styles.content}>
-        {isLoading && <div className={styles.loading}>加载中...</div>}
+        {isLoading && <div className={styles.loading}>{t('plugins.loading')}</div>}
 
         <div className={styles.pluginList}>
           {filteredPlugins.map((plugin) => (
@@ -102,14 +104,14 @@ export const PluginPanel: React.FC = () => {
                     className={`${styles.actionBtn} ${plugin.enabled ? styles.enabled : styles.disabled}`}
                     onClick={() => handleToggle(plugin)}
                   >
-                    {plugin.enabled ? '已启用' : '已禁用'}
+                    {plugin.enabled ? t('plugins.enabled') : t('plugins.disabled')}
                   </button>
                 ) : (
                   <button
                     className={`${styles.actionBtn} ${styles.install}`}
                     onClick={() => handleInstall(plugin)}
                   >
-                    安装
+                    {t('plugins.install')}
                   </button>
                 )}
               </div>

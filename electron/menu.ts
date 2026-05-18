@@ -1,8 +1,11 @@
 import { app, Menu, shell, BrowserWindow, dialog, MenuItemConstructorOptions } from 'electron';
+import { electronI18n } from './i18n';
 
 const isMac = process.platform === 'darwin';
 
 export function createMenu(mainWindow: BrowserWindow | null): void {
+  const t = (key: string) => electronI18n.t(key);
+  
   const template: MenuItemConstructorOptions[] = [
     ...(isMac
       ? [
@@ -23,18 +26,18 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
         ]
       : []),
     {
-      label: 'File',
+      label: t('menu.file'),
       submenu: [
         isMac ? { role: 'close' } : { role: 'quit' },
         {
-          label: 'Open File...',
+          label: t('menu.openFile'),
           accelerator: 'CmdOrCtrl+O',
           click: () => {
             mainWindow?.webContents.send('menu:open-file');
           },
         },
         {
-          label: 'Save',
+          label: t('menu.save'),
           accelerator: 'CmdOrCtrl+S',
           click: () => {
             mainWindow?.webContents.send('menu:save-file');
@@ -42,7 +45,7 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
         },
         { type: 'separator' as const },
         {
-          label: 'New File',
+          label: t('menu.newFile'),
           accelerator: 'CmdOrCtrl+N',
           click: () => {
             mainWindow?.webContents.send('menu:new-file');
@@ -51,7 +54,7 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
       ],
     },
     {
-      label: 'Edit',
+      label: t('menu.edit'),
       submenu: [
         { role: 'undo' },
         { role: 'redo' },
@@ -66,7 +69,7 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
               { role: 'selectAll' },
               { type: 'separator' },
               {
-                label: 'Speech',
+                label: t('menu.speech'),
                 submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }] as MenuItemConstructorOptions[],
               },
             ]
@@ -74,7 +77,7 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
       ] as MenuItemConstructorOptions[],
     },
     {
-      label: 'View',
+      label: t('menu.view'),
       submenu: [
         { role: 'reload' },
         { role: 'toggleDevTools' },
@@ -85,7 +88,7 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
         { role: 'togglefullscreen' },
         { type: 'separator' },
         {
-          label: 'Toggle Sidebar',
+          label: t('menu.toggleSidebar'),
           accelerator: 'CmdOrCtrl+B',
           click: () => {
             mainWindow?.webContents.send('menu:toggle-sidebar');
@@ -94,7 +97,7 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
       ] as MenuItemConstructorOptions[],
     },
     {
-      label: 'Window',
+      label: t('menu.window'),
       submenu: [
         { role: 'minimize' },
         { role: 'zoom' },
@@ -109,23 +112,23 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
       ] as MenuItemConstructorOptions[],
     },
     {
-      label: 'Help',
+      label: t('menu.help'),
       submenu: [
         {
-          label: 'Documentation',
+          label: t('menu.documentation'),
           click: async () => {
             await shell.openExternal('https://github.com/hnwlg2009/AvatarCode');
           },
         },
         {
-          label: 'Report Issue',
+          label: t('menu.reportIssue'),
           click: async () => {
             await shell.openExternal('https://github.com/hnwlg2009/AvatarCode/issues');
           },
         },
         { type: 'separator' },
         {
-          label: 'About AvatarCode',
+          label: t('menu.about'),
           click: () => {
             dialog.showMessageBox({
               type: 'info',

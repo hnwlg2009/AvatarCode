@@ -37,6 +37,9 @@ const electronAPI = {
     chatStream: (messages: any[], config?: any) =>
       ipcRenderer.invoke('llm:chat:stream', messages, config),
   },
+
+  // IPC 通用方法
+  send: (channel: string, ...args: any[]) => ipcRenderer.send(channel, ...args),
 };
 
 // 暴露给渲染进程

@@ -1,8 +1,10 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../../stores/settingsStore';
 import styles from './EditorSettings.module.css';
 
 export const EditorSettings: React.FC = () => {
+  const { t } = useTranslation();
   const { settings, setEditorSettings } = useSettingsStore();
   const editor = settings.editor;
 

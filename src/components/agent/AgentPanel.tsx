@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AgentOrchestrator } from '../../features/agent/AgentOrchestrator';
 import { FileTool, SearchTool } from '../../features/agent/tools';
 import { Agent, TaskStep, AgentState as AgentStateEnum } from '../../features/agent/types/agent.types';
@@ -11,6 +12,7 @@ interface AgentPanelProps {
 }
 
 export const AgentPanel: React.FC<AgentPanelProps> = ({ onSubmitTask }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<AgentTab>('explore');
   const [taskInput, setTaskInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -31,7 +33,7 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ onSubmitTask }) => {
     setIsRunning(true);
     setCurrentTask(taskInput);
     setSteps([]);
-    setLogs(['任务开始：' + taskInput]);
+    setLogs([t('agent.taskStarted') + taskInput]);
 
     try {
       onSubmitTask?.(taskInput);
@@ -40,9 +42,9 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ onSubmitTask }) => {
       const task = await orchestrator.startTask(taskInput);
 
       setSteps(task.steps);
-      setLogs((prev) => [...prev, '任务完成']);
+      setLogs((prev) => [...prev, t('agent.taskCompleted')]);
     } catch (error: any) {
-      setLogs((prev) => [...prev, '任务失败：' + error.message]);
+      setLogs((prev) => [...prev, t('agent.taskFailed') + error.message]);
     } finally {
       setIsRunning(false);
       setCurrentTask(null);
@@ -52,11 +54,11 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ onSubmitTask }) => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'explore':
-        return <div className={styles.tabContent}>📊 代码库分析结果将在这里展示</div>;
+        return <div className={styles.tabContent}>{t('agent.exploreContent')}</div>;
       case 'plan':
         return (
           <div className={styles.tabContent}>
-            <h3>任务计划</h3>
+            <h3>{t('agent.taskPlan')}</h3>
             {steps.length > 0 ? (
               <div className={styles.steps}>
                 {steps.map((step, i) => (
@@ -69,16 +71,16 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ onSubmitTask }) => {
                 ))}
               </div>
             ) : (
-              <p className={styles.empty}>暂无计划</p>
+              <p className={styles.empty}>{t('agent.noPlan')}</p>
             )}
           </div>
         );
       case 'execute':
-        return <div className={styles.tabContent}>💻 代码生成预览将在这里展示</div>;
+        return <div className={styles.tabContent}>{t('agent.executeContent')}</div>;
       case 'review':
-        return <div className={styles.tabContent}>🔍 代码审查结果将在这里展示</div>;
+        return <div className={styles.tabContent}>{t('agent.reviewContent')}</div>;
       case 'history':
-        return <div className={styles.tabContent}>📜 历史任务记录</div>;
+        return <div className={styles.tabContent}>{t('agent.historyContent')}</div>;
       default:
         return null;
     }
@@ -91,7 +93,7 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ onSubmitTask }) => {
         <textarea
           value={taskInput}
           onChange={(e) => setTaskInput(e.target.value)}
-          placeholder="描述你想要完成的任务，例如：帮我创建一个用户登录功能"
+          placeholder={t('agent.taskPlaceholder')}
           disabled={isRunning}
           className={styles.textarea}
         />
@@ -100,7 +102,7 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ onSubmitTask }) => {
           disabled={isRunning || !taskInput.trim()}
           className={styles.startButton}
         >
-          {isRunning ? '执行中...' : '开始任务'}
+          {isRunning ? t('agent.running') : t('agent.startTask')}
         </button>
       </div>
 
@@ -110,31 +112,31 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ onSubmitTask }) => {
           className={`${styles.tab} ${activeTab === 'explore' ? styles.active : ''}`}
           onClick={() => setActiveTab('explore')}
         >
-          🔍 Explore
+          🔍 {t('agent.tabs.explore')}
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'plan' ? styles.active : ''}`}
           onClick={() => setActiveTab('plan')}
         >
-          📋 Plan
+          📋 {t('agent.tabs.plan')}
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'execute' ? styles.active : ''}`}
           onClick={() => setActiveTab('execute')}
         >
-          ⚡ Execute
+          ⚡ {t('agent.tabs.execute')}
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'review' ? styles.active : ''}`}
           onClick={() => setActiveTab('review')}
         >
-          ✅ Review
+          ✅ {t('agent.tabs.review')}
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'history' ? styles.active : ''}`}
           onClick={() => setActiveTab('history')}
         >
-          📜 History
+          📜 {t('agent.tabs.history')}
         </button>
       </div>
 
@@ -142,7 +144,7 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ onSubmitTask }) => {
       {isRunning && (
         <div className={styles.runningState}>
           <div className={styles.spinner}></div>
-          <span>正在执行：{currentTask}</span>
+          <span>{t('agent.runningTask')}{currentTask}</span>
         </div>
       )}
 
@@ -152,7 +154,7 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ onSubmitTask }) => {
       {/* 日志输出 */}
       {logs.length > 0 && (
         <div className={styles.logs}>
-          <h4>执行日志</h4>
+          <h4>{t('agent.executionLogs')}</h4>
           <div className={styles.logList}>
             {logs.map((log, i) => (
               <div key={i} className={styles.logItem}>

@@ -34,7 +34,7 @@ if ($Clean -or (Test-Path "$OutputDir\AvatarCode-win32-x64")) {
 if (-not $SkipBuild) {
     # 2. 构建前端
     Write-Step "Building frontend (Vite)..."
-    npm run build:web
+    npm run build
     if ($LASTEXITCODE -ne 0) { throw "Frontend build failed" }
     Write-Host "  ✓ Frontend built" -ForegroundColor Green
 

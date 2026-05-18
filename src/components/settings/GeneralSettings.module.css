@@ -1,0 +1,59 @@
+.generalSettings {
+  padding: 16px;
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.section h3 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #cccccc;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.languageGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.languageCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: #2d2d2d;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.languageCard:hover {
+  background: #3d3d3d;
+  border-color: #4d4d4d;
+}
+
+.languageCard.active {
+  background: #1e1e1e;
+  border-color: #007acc;
+}
+
+.languageFlag {
+  font-size: 32px;
+}
+
+.languageLabel {
+  font-size: 14px;
+  color: #cccccc;
+}
+
+.languageCard.active .languageLabel {
+  color: #ffffff;
+  font-weight: 500;
+}

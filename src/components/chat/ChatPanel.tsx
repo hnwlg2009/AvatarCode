@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatStore } from '../../stores/chatStore';
 import styles from './ChatPanel.module.css';
 
 export const ChatPanel: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -55,7 +57,8 @@ export const ChatPanel: React.FC = () => {
   );
 
   const formatTimestamp = (timestamp: number): string => {
-    return new Date(timestamp).toLocaleTimeString('zh-CN', {
+    const locale = i18n.language === 'zh' ? 'zh-CN' : 'en-US';
+    return new Date(timestamp).toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -88,9 +91,9 @@ export const ChatPanel: React.FC = () => {
     <div className={styles.chatPanel}>
       {/* 头部 */}
       <div className={styles.header}>
-        <h3 className={styles.title}>AI Chat</h3>
+        <h3 className={styles.title}>{t('chat.title')}</h3>
         <div className={styles.actions}>
-          <button className={styles.clearButton} onClick={clearMessages} title="清空对话">
+          <button className={styles.clearButton} onClick={clearMessages} title={t('chat.clearChat')}>
             <svg width="16" height="16" viewBox="0 0 16 16">
               <path
                 fill="currentColor"
@@ -105,16 +108,16 @@ export const ChatPanel: React.FC = () => {
       <div className={styles.messages}>
         {messages.length === 0 ? (
           <div className={styles.emptyState}>
-            <p>你好！我是 AI 编程助手</p>
+            <p>{t('chat.greeting')}</p>
             <p className={styles.hint}>
-              我可以帮你：
+              {t('chat.helpTitle')}
               <br />
-              • 解释代码
+              • {t('chat.helpExplain')}
               <br />
-              • 提供优化建议
+              • {t('chat.helpOptimize')}
               <br />
-              • 解答编程问题
-              <br />• 生成代码示例
+              • {t('chat.helpAnswer')}
+              <br />• {t('chat.helpGenerate')}
             </p>
           </div>
         ) : (
@@ -126,7 +129,7 @@ export const ChatPanel: React.FC = () => {
               } ${message.isError ? styles.error : ''}`}
             >
               <div className={styles.messageHeader}>
-                <span className={styles.role}>{message.role === 'user' ? '👤 你' : '🤖 AI'}</span>
+                <span className={styles.role}>{message.role === 'user' ? `👤 ${t('chat.userRole')}` : `🤖 ${t('chat.aiRole')}`}</span>
                 <span className={styles.timestamp}>{formatTimestamp(message.timestamp)}</span>
               </div>
               <div className={styles.messageContent}>{renderMessageContent(message.content)}</div>
@@ -175,7 +178,7 @@ export const ChatPanel: React.FC = () => {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="输入问题... (Shift+Enter 换行)"
+          placeholder={t('chat.inputPlaceholder')}
           className={styles.input}
           disabled={status === 'loading'}
           rows={1}
@@ -184,7 +187,7 @@ export const ChatPanel: React.FC = () => {
         <div className={styles.inputActions}>
           {status === 'streaming' ? (
             <button className={styles.stopButton} onClick={stopGeneration}>
-              停止
+              {t('chat.stop')}
             </button>
           ) : (
             <button
@@ -192,7 +195,7 @@ export const ChatPanel: React.FC = () => {
               onClick={handleSend}
               disabled={!inputValue.trim() || status === 'loading'}
             >
-              发送
+              {t('chat.send')}
             </button>
           )}
         </div>

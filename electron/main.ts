@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, session } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { createMenu } from './menu';
+import { electronI18n } from './i18n';
 import { registerFileHandlers, default as pathSecurity } from './ipc/file-handlers';
 import { registerTerminalHandlers } from './ipc/terminal-handlers';
 import { setupGitIpcHandlers } from './ipc/git-handlers';
@@ -152,4 +153,10 @@ ipcMain.handle('dialog:openDirectory', async (): Promise<string | null> => {
     throw new Error('Access denied: path outside workspace');
   }
   return dirPath;
+});
+
+// 语言变更处理
+ipcMain.on('language-changed', (event, lang: string) => {
+  electronI18n.loadTranslations(lang);
+  createMenu(mainWindow);
 });
