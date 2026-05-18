@@ -12,8 +12,22 @@
 | **版本号** | 0.2.0 |
 | **发布日期** | 2026-05-18 |
 | **平台** | Windows 11 x64 |
-| **构建工具** | electron-packager + 自定义构建脚本 |
+| **构建工具** | 自定义构建脚本 |
 | **Electron版本** | 30.5.1 |
+| **打包大小** | 89.4MB (ZIP) |
+
+#### 发布文件
+```
+release/
+├── AvatarCode-win32-x64/          # 主程序目录
+│   ├── AvatarCode.exe             # 可执行文件 (177MB)
+│   ├── resources/
+│   │   └── app/                   # 应用代码
+│   │       ├── dist/              # 前端构建产物
+│   │       └── electron/          # Electron主进程
+│   └── 启动AvatarCode.bat         # 启动脚本
+└── AvatarCode-0.2.0-win-x64.zip   # 便携版ZIP包 (89.4MB)
+```
 
 #### 新增功能
 
@@ -184,14 +198,15 @@ release/
 
 #### 构建命令
 ```powershell
-# 使用可靠构建脚本（推荐）
+# 使用简化构建脚本（推荐）
+.\simple-build.ps1
+
+# 或使用完整构建脚本
 .\build-windows-reliable.ps1
 
 # 或手动构建
-npm run build:web          # 1. 构建前端
-npm run build:electron     # 2. 编译Electron
-npx electron-packager . AvatarCode --platform=win32 --arch=x64  # 3. 打包
-# 4. 修复ESM问题、复制IPC文件、安装依赖
+npm run build              # 1. 构建前端和Electron
+# 2. 使用simple-build.ps1打包
 ```
 
 #### 系统要求
