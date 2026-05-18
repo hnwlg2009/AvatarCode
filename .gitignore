@@ -53,6 +53,11 @@ logs
 *.tmp
 *.temp
 
+# Release artifacts
+/release
+/release-*
+/electron-cache
+
 # AvatarCode specific
 .openspec/
 .monkeycode/
