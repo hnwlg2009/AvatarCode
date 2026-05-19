@@ -37,6 +37,7 @@ const electron_1 = require("electron");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs/promises"));
 const menu_1 = require("./menu");
+const i18n_1 = require("./i18n");
 const file_handlers_1 = require("./ipc/file-handlers");
 const terminal_handlers_1 = require("./ipc/terminal-handlers");
 const git_handlers_1 = require("./ipc/git-handlers");
@@ -173,4 +174,9 @@ electron_1.ipcMain.handle('dialog:openDirectory', async () => {
         throw new Error('Access denied: path outside workspace');
     }
     return dirPath;
+});
+// 语言变更处理
+electron_1.ipcMain.on('language-changed', (event, lang) => {
+    i18n_1.electronI18n.loadTranslations(lang);
+    (0, menu_1.createMenu)(mainWindow);
 });

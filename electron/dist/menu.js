@@ -2,8 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createMenu = createMenu;
 const electron_1 = require("electron");
+const i18n_1 = require("./i18n");
 const isMac = process.platform === 'darwin';
 function createMenu(mainWindow) {
+    const t = (key) => i18n_1.electronI18n.t(key);
     const template = [
         ...(isMac
             ? [
@@ -24,18 +26,18 @@ function createMenu(mainWindow) {
             ]
             : []),
         {
-            label: 'File',
+            label: t('menu.file'),
             submenu: [
                 isMac ? { role: 'close' } : { role: 'quit' },
                 {
-                    label: 'Open File...',
+                    label: t('menu.openFile'),
                     accelerator: 'CmdOrCtrl+O',
                     click: () => {
                         mainWindow?.webContents.send('menu:open-file');
                     },
                 },
                 {
-                    label: 'Save',
+                    label: t('menu.save'),
                     accelerator: 'CmdOrCtrl+S',
                     click: () => {
                         mainWindow?.webContents.send('menu:save-file');
@@ -43,7 +45,7 @@ function createMenu(mainWindow) {
                 },
                 { type: 'separator' },
                 {
-                    label: 'New File',
+                    label: t('menu.newFile'),
                     accelerator: 'CmdOrCtrl+N',
                     click: () => {
                         mainWindow?.webContents.send('menu:new-file');
@@ -52,7 +54,7 @@ function createMenu(mainWindow) {
             ],
         },
         {
-            label: 'Edit',
+            label: t('menu.edit'),
             submenu: [
                 { role: 'undo' },
                 { role: 'redo' },
@@ -67,7 +69,7 @@ function createMenu(mainWindow) {
                         { role: 'selectAll' },
                         { type: 'separator' },
                         {
-                            label: 'Speech',
+                            label: t('menu.speech'),
                             submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }],
                         },
                     ]
@@ -75,7 +77,7 @@ function createMenu(mainWindow) {
             ],
         },
         {
-            label: 'View',
+            label: t('menu.view'),
             submenu: [
                 { role: 'reload' },
                 { role: 'toggleDevTools' },
@@ -86,7 +88,7 @@ function createMenu(mainWindow) {
                 { role: 'togglefullscreen' },
                 { type: 'separator' },
                 {
-                    label: 'Toggle Sidebar',
+                    label: t('menu.toggleSidebar'),
                     accelerator: 'CmdOrCtrl+B',
                     click: () => {
                         mainWindow?.webContents.send('menu:toggle-sidebar');
@@ -95,7 +97,7 @@ function createMenu(mainWindow) {
             ],
         },
         {
-            label: 'Window',
+            label: t('menu.window'),
             submenu: [
                 { role: 'minimize' },
                 { role: 'zoom' },
@@ -110,23 +112,23 @@ function createMenu(mainWindow) {
             ],
         },
         {
-            label: 'Help',
+            label: t('menu.help'),
             submenu: [
                 {
-                    label: 'Documentation',
+                    label: t('menu.documentation'),
                     click: async () => {
                         await electron_1.shell.openExternal('https://github.com/hnwlg2009/AvatarCode');
                     },
                 },
                 {
-                    label: 'Report Issue',
+                    label: t('menu.reportIssue'),
                     click: async () => {
                         await electron_1.shell.openExternal('https://github.com/hnwlg2009/AvatarCode/issues');
                     },
                 },
                 { type: 'separator' },
                 {
-                    label: 'About AvatarCode',
+                    label: t('menu.about'),
                     click: () => {
                         electron_1.dialog.showMessageBox({
                             type: 'info',
