@@ -12,9 +12,9 @@
 | **版本号** | 0.2.0 |
 | **发布日期** | 2026-05-18 |
 | **平台** | Windows 11 x64 |
-| **构建工具** | 自定义构建脚本 |
+| **构建工具** | 自定义构建脚本 (build-fix.ps1) |
 | **Electron版本** | 30.5.1 |
-| **打包大小** | 89.4MB (ZIP) |
+| **打包大小** | ~100MB (ZIP) |
 
 #### 发布文件
 ```
@@ -23,10 +23,42 @@ release/
 │   ├── AvatarCode.exe             # 可执行文件 (177MB)
 │   ├── resources/
 │   │   └── app/                   # 应用代码
+│   │       ├── package.json       # type: commonjs
 │   │       ├── dist/              # 前端构建产物
-│   │       └── electron/          # Electron主进程
+│   │       ├── electron/          # Electron主进程 (已编译)
+│   │       │   ├── main.js        # 主进程入口
+│   │       │   ├── menu.js        # 菜单
+│   │       │   ├── preload.js     # 预加载脚本
+│   │       │   └── ipc/           # IPC处理程序
+│   │       └── node_modules/      # 生产依赖
 │   └── 启动AvatarCode.bat         # 启动脚本
-└── AvatarCode-0.2.0-win-x64.zip   # 便携版ZIP包 (89.4MB)
+└── AvatarCode-0.2.0-win-x64.zip   # 便携版ZIP包
+```
+
+#### 修复的关键问题
+
+##### 1. ESM/CommonJS模块冲突
+**错误：** `ReferenceError: exports is not defined in ES module scope`
+**原因：** package.json中`"type": "module"`导致CommonJS的.js文件被当作ESM处理
+**解决方案：** 将打包后的package.json中的type改为`"commonjs"`
+
+##### 2. main.js路径错误
+**错误：** 应用无法启动，找不到主进程入口
+**原因：** package.json中的main路径错误
+**解决方案：** 将main路径从`electron/main.js`改为`electron/dist/main.js`
+
+##### 3. Electron文件打包错误
+**错误：** 打包了TypeScript源文件而不是编译后的JavaScript文件
+**原因：** 打包脚本复制了错误的文件
+**解决方案：** 先编译Electron TypeScript，然后复制`electron/dist`目录中的JavaScript文件
+
+#### 构建命令
+```powershell
+# 使用修复后的构建脚本（推荐）
+.\build-fix.ps1 -Clean
+
+# 或使用简化脚本
+.\simple-build.ps1
 ```
 
 #### 新增功能
