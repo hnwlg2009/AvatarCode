@@ -97,7 +97,7 @@ $packageJson = @{
     name = "avatarcode"
     version = "0.2.0"
     description = "AI-Native Code Editor - Next-generation intelligent development environment"
-    main = "electron/dist/main.js"
+    main = "electron/main.js"
     type = "commonjs"
     scripts = @{
         start = "electron ."
@@ -123,7 +123,7 @@ $packageJson = @{
     }
 }
 $packageJson | ConvertTo-Json -Depth 10 | Set-Content "$appDir\resources\app\package.json" -Encoding UTF8
-Write-Host "  ✓ package.json已创建（type: commonjs, main: electron/dist/main.js）" -ForegroundColor Green
+Write-Host "  ✓ package.json已创建（type: commonjs, main: electron/main.js）" -ForegroundColor Green
 
 Write-Host "`n[7/8] 安装生产依赖..." -ForegroundColor Yellow
 Push-Location "$appDir\resources\app"
