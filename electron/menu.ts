@@ -5,7 +5,6 @@ const isMac = process.platform === 'darwin';
 
 export function createMenu(mainWindow: BrowserWindow | null): void {
   const t = (key: string) => electronI18n.t(key);
-  
   const template: MenuItemConstructorOptions[] = [
     ...(isMac
       ? [
@@ -28,7 +27,7 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
     {
       label: t('menu.file'),
       submenu: [
-        isMac ? { role: 'close' } : { role: 'quit' },
+        isMac ? { label: t('menu.close'), role: 'close' } : { label: t('menu.quit'), role: 'quit' },
         {
           label: t('menu.openFile'),
           accelerator: 'CmdOrCtrl+O',
@@ -56,36 +55,43 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
     {
       label: t('menu.edit'),
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
+        { label: t('menu.undo'), role: 'undo' },
+        { label: t('menu.redo'), role: 'redo' },
         { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
+        { label: t('menu.cut'), role: 'cut' },
+        { label: t('menu.copy'), role: 'copy' },
+        { label: t('menu.paste'), role: 'paste' },
         ...(isMac
           ? [
-              { role: 'pasteAndMatchStyle' },
-              { role: 'delete' },
-              { role: 'selectAll' },
+              { label: t('menu.pasteAndMatchStyle'), role: 'pasteAndMatchStyle' },
+              { label: t('menu.delete'), role: 'delete' },
+              { label: t('menu.selectAll'), role: 'selectAll' },
               { type: 'separator' },
               {
                 label: t('menu.speech'),
-                submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }] as MenuItemConstructorOptions[],
+                submenu: [
+                  { label: t('menu.startSpeaking'), role: 'startSpeaking' },
+                  { label: t('menu.stopSpeaking'), role: 'stopSpeaking' },
+                ] as MenuItemConstructorOptions[],
               },
             ]
-          : [{ role: 'delete' }, { type: 'separator' }, { role: 'selectAll' }]),
+          : [
+              { label: t('menu.delete'), role: 'delete' },
+              { type: 'separator' },
+              { label: t('menu.selectAll'), role: 'selectAll' },
+            ]),
       ] as MenuItemConstructorOptions[],
     },
     {
       label: t('menu.view'),
       submenu: [
-        { role: 'reload' },
-        { role: 'toggleDevTools' },
+        { label: t('menu.reload'), role: 'reload' },
+        { label: t('menu.toggleDevTools'), role: 'toggleDevTools' },
         { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { role: 'togglefullscreen' },
+        { label: t('menu.resetZoom'), role: 'resetZoom' },
+        { label: t('menu.zoomIn'), role: 'zoomIn' },
+        { label: t('menu.zoomOut'), role: 'zoomOut' },
+        { label: t('menu.toggleFullScreen'), role: 'togglefullscreen' },
         { type: 'separator' },
         {
           label: t('menu.toggleSidebar'),
@@ -99,16 +105,16 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
     {
       label: t('menu.window'),
       submenu: [
-        { role: 'minimize' },
-        { role: 'zoom' },
+        { label: t('menu.minimize'), role: 'minimize' },
+        { label: t('menu.zoom'), role: 'zoom' },
         ...(isMac
           ? [
               { type: 'separator' },
-              { role: 'front' },
+              { label: t('menu.front'), role: 'front' },
               { type: 'separator' },
               { role: 'window' },
             ]
-          : [{ role: 'close' }]),
+          : [{ label: t('menu.close'), role: 'close' }]),
       ] as MenuItemConstructorOptions[],
     },
     {
@@ -134,8 +140,8 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
               type: 'info',
               title: 'AvatarCode',
               message: `AvatarCode v${app.getVersion()}`,
-              detail: 'AI-Native Code Editor - Next-generation intelligent development environment',
-              buttons: ['OK'],
+              detail: t('menu.aboutDetail'),
+              buttons: [t('menu.ok')],
             });
           },
         },

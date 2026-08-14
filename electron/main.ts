@@ -1,34 +1,31 @@
-import { app, BrowserWindow, ipcMain, dialog, session } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import * as fs from 'fs/promises';
 import { createMenu } from './menu';
 import { electronI18n } from './i18n';
 import { registerFileHandlers, default as pathSecurity } from './ipc/file-handlers';
-import { registerTerminalHandlers } from './ipc/terminal-handlers';
 import { setupGitIpcHandlers } from './ipc/git-handlers';
 import { setupLLMIpcHandlers } from './ipc/llm-handlers';
+import { registerCommandHandlers } from './ipc/command-handlers';
 
 let mainWindow: BrowserWindow | null = null;
 let workspacePath: string | null = null;
 
-// 安全的路径校验函数
-function isPathAllowed(filePath: string): boolean {
-  if (!workspacePath) return false;
-  const resolved = path.resolve(filePath);
-  const allowedDir = path.resolve(workspacePath);
-  return resolved.startsWith(allowedDir + path.sep) || resolved === allowedDir;
-}
-
 function createWindow(): void {
+  const isMac = process.platform === 'darwin';
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 800,
     minHeight: 600,
-    titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 10, y: 10 },
-    frame: true,
+    ...(isMac
+      ? {
+          titleBarStyle: 'hidden' as const,
+          trafficLightPosition: { x: 10, y: 10 },
+        }
+      : {}),
     backgroundColor: '#0d0d0d',
+    icon: path.join(__dirname, '../../build/icon-256.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -40,7 +37,7 @@ function createWindow(): void {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'));
   }
 
   mainWindow.on('closed', () => {
@@ -60,19 +57,25 @@ function createWindow(): void {
 
 // 应用生命周期
 app.whenReady().then(async () => {
-  registerFileHandlers();
-  registerTerminalHandlers();
-  setupGitIpcHandlers(mainWindow, workspacePath);
-  setupLLMIpcHandlers();
+  registerAllIpcHandlers();
+
+  createWindow();
+  createMenu(mainWindow);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
       createMenu(mainWindow);
-      setupGitIpcHandlers(mainWindow, workspacePath);
     }
   });
 });
+
+function registerAllIpcHandlers(): void {
+  registerFileHandlers();
+  setupLLMIpcHandlers();
+  setupGitIpcHandlers();
+  registerCommandHandlers();
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -84,61 +87,16 @@ app.on('window-all-closed', () => {
 ipcMain.handle('app:version', () => app.getVersion());
 ipcMain.handle('app:platform', () => process.platform);
 
-// 安全：文件读取需要路径校验
-ipcMain.handle('file:read', async (_, filePath: string): Promise<string> => {
-  if (!isPathAllowed(filePath)) {
-    throw new Error('Access denied: path outside workspace');
-  }
-  return await fs.readFile(filePath, 'utf-8');
-});
+// 当前工作区路径（单一事实源）
+ipcMain.handle('workspace:getPath', (): string | null => workspacePath);
 
-// 安全：文件写入需要路径校验
-ipcMain.handle('file:write', async (_, filePath: string, content: string): Promise<void> => {
-  if (!isPathAllowed(filePath)) {
-    throw new Error('Access denied: path outside workspace');
-  }
-  await fs.writeFile(filePath, content, 'utf-8');
-});
-
-ipcMain.handle('file:exists', async (_, filePath: string): Promise<boolean> => {
-  if (!isPathAllowed(filePath)) {
-    throw new Error('Access denied: path outside workspace');
-  }
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-});
-
-ipcMain.handle('dialog:openFile', async (): Promise<string | null> => {
-  const result = await dialog.showOpenDialog(mainWindow!, {
-    properties: ['openFile'],
-    filters: [{ name: 'All Files', extensions: ['*'] }],
-  });
-  if (result.canceled || result.filePaths.length === 0) {
+ipcMain.handle('workspace:setPath', (_event, dirPath: string): string | null => {
+  if (typeof dirPath !== 'string' || dirPath.length === 0) {
     return null;
   }
-  const filePath = result.filePaths[0];
-  if (!isPathAllowed(filePath)) {
-    throw new Error('Access denied: path outside workspace');
-  }
-  return filePath;
-});
-
-ipcMain.handle('dialog:saveFile', async (): Promise<string | null> => {
-  const result = await dialog.showSaveDialog(mainWindow!, {
-    filters: [{ name: 'All Files', extensions: ['*'] }],
-  });
-  if (result.canceled || !result.filePath) {
-    return null;
-  }
-  const filePath = result.filePath;
-  if (!isPathAllowed(filePath)) {
-    throw new Error('Access denied: path outside workspace');
-  }
-  return filePath;
+  workspacePath = dirPath;
+  pathSecurity.addAllowedPath(dirPath);
+  return dirPath;
 });
 
 ipcMain.handle('dialog:openDirectory', async (): Promise<string | null> => {
@@ -149,9 +107,9 @@ ipcMain.handle('dialog:openDirectory', async (): Promise<string | null> => {
     return null;
   }
   const dirPath = result.filePaths[0];
-  if (!isPathAllowed(dirPath)) {
-    throw new Error('Access denied: path outside workspace');
-  }
+  // 用户主动选择的目录即工作区根，自动授权
+  workspacePath = dirPath;
+  pathSecurity.addAllowedPath(dirPath);
   return dirPath;
 });
 

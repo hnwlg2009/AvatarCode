@@ -1,7 +1,9 @@
 export interface LLMMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
   name?: string;
+  toolCallId?: string;
+  toolCalls?: LLMToolCall[];
 }
 
 export interface LLMOptions {
@@ -45,6 +47,13 @@ export interface LLMResponse {
   };
 }
 
+export interface LLMStreamChunk {
+  type: 'content' | 'tool_call' | 'done' | 'error';
+  content?: string;
+  toolCall?: LLMToolCall;
+  error?: string;
+}
+
 export interface LLMProvider {
   generate(prompt: string | LLMMessage[], options?: LLMOptions): Promise<LLMResponse>;
   generateWithTools?(
@@ -52,6 +61,10 @@ export interface LLMProvider {
     tools: LLMTool[],
     options?: LLMOptions
   ): Promise<LLMResponse>;
+  stream?(
+    prompt: string | LLMMessage[],
+    options?: LLMOptions
+  ): AsyncIterable<LLMStreamChunk>;
   getModels(): Promise<LLMModel[]>;
 }
 
@@ -65,7 +78,7 @@ export interface LLMModel {
 }
 
 export interface LLMConfig {
-  provider: 'openai' | 'anthropic';
+  provider: 'openai' | 'anthropic' | 'mock';
   apiKey?: string;
   model?: string;
   baseUrl?: string;

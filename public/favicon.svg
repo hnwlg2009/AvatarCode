@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- 外层C -->
+  <path d="M 75 50 A 30 30 0 1 0 25 50" stroke="url(#grad)" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <!-- 内层A -->
+  <path d="M 42 65 L 52 35 L 62 65" stroke="#8B5CF6" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="45" y1="55" x2="59" y2="55" stroke="#8B5CF6" stroke-width="6" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,98 @@
+{
+  "app": {
+    "name": "分身Code",
+    "description": "AI 原生代码编辑器"
+  },
+  "main": {
+    "explorer": "资源管理器",
+    "git": "源代码管理",
+    "search": "搜索",
+    "chat": "对话",
+    "agent": "智能体",
+    "settings": "设置"
+  },
+  "agent": {
+    "title": "AI 智能体",
+    "clear": "清空",
+    "stop": "停止",
+    "welcome": "欢迎使用 AI 智能体",
+    "hint": "让我帮你完成编程任务",
+    "placeholder": "问我任何问题...",
+    "send": "发送",
+    "approval": "等待批准执行命令：",
+    "approve": "批准",
+    "deny": "拒绝"
+  },
+  "fileTree": {
+    "empty": "没有文件"
+  },
+  "workspace": {
+    "emptyTitle": "欢迎使用分身Code",
+    "emptyHint": "打开文件开始编辑",
+    "openFile": "打开文件",
+    "saveFile": "保存文件",
+    "selectFile": "选择文件"
+  },
+  "explorer": {
+    "openWorkspace": "打开工作区",
+    "noWorkspace": "未打开工作区",
+    "saveWorkspace": "保存工作区配置"
+  },
+  "api": {
+    "apiKey": "API Key",
+    "baseUrl": "接口地址 (Base URL)",
+    "model": "模型 (Model)",
+    "save": "保存 API 设置",
+    "saving": "保存中...",
+    "saved": "API 设置已保存",
+    "saveFailed": "保存失败",
+    "llmUnavailable": "Electron LLM API 不可用"
+  },
+  "file": {
+    "new": "新建文件",
+    "open": "打开",
+    "save": "保存",
+    "saveAs": "另存为",
+    "close": "关闭",
+    "closeAll": "关闭所有",
+    "untitled": "未命名"
+  },
+  "edit": {
+    "undo": "撤销",
+    "redo": "重做",
+    "cut": "剪切",
+    "copy": "复制",
+    "paste": "粘贴",
+    "selectAll": "全选",
+    "find": "查找",
+    "replace": "替换"
+  },
+  "view": {
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "resetZoom": "重置缩放",
+    "toggleFullScreen": "切换全屏",
+    "toggleDevTools": "切换开发者工具"
+  },
+  "help": {
+    "about": "关于",
+    "documentation": "文档",
+    "reportIssue": "报告问题",
+    "checkForUpdates": "检查更新"
+  },
+  "dialog": {
+    "confirm": "确认",
+    "cancel": "取消",
+    "ok": "确定",
+    "yes": "是",
+    "no": "否",
+    "save": "保存",
+    "dontSave": "不保存",
+    "closeWithoutSaving": "是否关闭而不保存？"
+  },
+  "error": {
+    "fileNotFound": "文件未找到",
+    "permissionDenied": "权限被拒绝",
+    "unknownError": "发生未知错误"
+  }
+}

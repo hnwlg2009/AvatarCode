@@ -98,10 +98,12 @@ export class FileWatcherService extends EventEmitter {
           this.emit('error', error);
         });
 
+      this.isWatching = true;
+      this.emit('started');
+
       this.watcher.on('ready', () => {
         this.isWatching = true;
-        console.log(`File watcher started for: ${dirPath}`);
-        this.emit('started');
+        console.log(`File watcher ready for: ${dirPath}`);
       });
     } catch (error) {
       this.emit('error', error);

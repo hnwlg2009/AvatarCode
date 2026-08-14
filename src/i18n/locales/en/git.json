@@ -1,0 +1,13 @@
+{
+  "loading": "Loading...",
+  "notRepo": "Not a git repository",
+  "noWorkspace": "No workspace opened",
+  "changes": "Changes",
+  "history": "History",
+  "branches": "Branches",
+  "current": "current",
+  "stage": "Stage",
+  "unstage": "Unstage",
+  "commit": "Commit",
+  "commitPlaceholder": "Commit message"
+}

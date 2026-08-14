@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { FileService } from '../src/services/FileService';
+import { FileService } from '../../src/services/FileService';
 
 describe('FileService - Integration Tests', () => {
   describe('language detection workflow', () => {

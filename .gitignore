@@ -11,6 +11,8 @@
 # electron
 /out
 /dist
+/electron/dist
+/.git-rewrite
 
 # production
 /build

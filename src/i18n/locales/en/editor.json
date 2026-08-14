@@ -1,0 +1,41 @@
+{
+  "title": "Code Editor",
+  "readOnly": "Read Only",
+  "modified": "Modified",
+  "saved": "Saved",
+  "lines": "Lines",
+  "characters": "Characters",
+  "words": "Words",
+  "font": "Font",
+  "fontSize": "Font Size",
+  "fontFamily": "Font Family",
+  "indentation": "Indentation",
+  "tabSize": "Tab Size",
+  "display": "Display",
+  "wordWrap": "Word Wrap",
+  "minimap": {
+    "enabled": "Show Minimap",
+    "disabled": "Hide Minimap"
+  },
+  "lineNumbers": "Show Line Numbers",
+  "scrollBeyondLastLine": "Scroll Beyond Last Line",
+  "autoSave": "Auto Save",
+  "enableAutoSave": "Enable Auto Save",
+  "delay": "Delay",
+  "statusBar": {
+    "line": "Line",
+    "column": "Column",
+    "selected": "Selected",
+    "indentation": "Indentation",
+    "encoding": "Encoding",
+    "language": "Language",
+    "tabSize": "Tab Size"
+  },
+  "actions": {
+    "format": "Format Document",
+    "formatSelection": "Format Selection",
+    "toggleWordWrap": "Toggle Word Wrap",
+    "toggleMinimap": "Toggle Minimap",
+    "toggleLineNumbers": "Toggle Line Numbers"
+  }
+}

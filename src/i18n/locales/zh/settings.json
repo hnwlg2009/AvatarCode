@@ -1,0 +1,102 @@
+{
+  "title": "设置",
+  "nav": {
+    "general": "常规",
+    "editor": "编辑器",
+    "git": "Git",
+    "workspace": "工作区",
+    "api": "API",
+    "appearance": "外观"
+  },
+  "general": {
+    "language": "语言",
+    "languageDescription": "选择显示语言",
+    "autoSave": "自动保存",
+    "autoSaveDescription": "编辑后自动保存文件",
+    "autoSaveDelay": "自动保存延迟",
+    "autoSaveDelayDescription": "自动保存前的延迟时间（毫秒）"
+  },
+  "editor": {
+    "fontSize": "字体大小",
+    "fontSizeDescription": "设置编辑器字体大小",
+    "fontFamily": "字体",
+    "fontFamilyDescription": "设置编辑器字体",
+    "tabSize": "制表符大小",
+    "tabSizeDescription": "设置制表符的空格数",
+    "wordWrap": "自动换行",
+    "wordWrapDescription": "在编辑器宽度处换行",
+    "minimap": "缩略图",
+    "minimapDescription": "在右侧显示缩略图",
+    "lineNumbers": "行号",
+    "lineNumbersDescription": "在编辑器中显示行号",
+    "bracketPairColorization": "括号对着色",
+    "bracketPairColorizationDescription": "为匹配的括号着色"
+  },
+  "git": {
+    "enabled": "启用 Git",
+    "enabledDescription": "启用 Git 集成",
+    "autoFetch": "自动获取",
+    "autoFetchDescription": "自动从远程仓库获取",
+    "confirmSync": "确认同步",
+    "confirmSyncDescription": "同步前请求确认"
+  },
+  "workspace": {
+    "title": "工作区设置",
+    "emptyTitle": "未打开工作区",
+    "emptyHint": "请先打开一个工作区以配置工作区特定设置",
+    "editor": "编辑器设置",
+    "git": "Git 设置",
+    "fontSize": "字体大小",
+    "tabSize": "Tab 大小",
+    "wordWrap": "自动换行",
+    "autoSave": "自动保存",
+    "userName": "用户名",
+    "userEmail": "邮箱",
+    "userNamePlaceholder": "例如：devin WLG",
+    "userEmailPlaceholder": "例如：devin@example.com",
+    "save": "保存配置",
+    "saving": "保存中...",
+    "saved": "工作区配置已保存",
+    "saveFailed": "保存失败",
+    "openConfig": "打开配置文件",
+    "loading": "加载中...",
+    "rootPath": "工作区根目录",
+    "rootPathDescription": "工作区的根目录",
+    "excludePatterns": "排除模式",
+    "excludePatternsDescription": "从文件监视中排除的模式"
+  },
+  "appearance": {
+    "theme": "主题",
+    "themeDescription": "选择编辑器主题",
+    "themes": {
+      "dark": "深色",
+      "light": "浅色",
+      "system": "跟随系统",
+      "highContrast": "高对比度"
+    }
+  },
+  "gitSettings": {
+    "title": "Git 身份配置",
+    "description": "配置提交时使用的 Git 身份",
+    "userName": "用户名",
+    "userEmail": "邮箱",
+    "userNamePlaceholder": "你的名字",
+    "userEmailPlaceholder": "your@email.com",
+    "fillAll": "请填写所有字段",
+    "saved": "Git 配置保存成功！",
+    "saveFailed": "保存配置失败",
+    "save": "保存配置",
+    "saving": "保存中...",
+    "tipsTitle": "提示：",
+    "tip1": "你的名字和邮箱会附加到每次提交",
+    "tip2": "建议使用与 GitHub 账号相同的邮箱",
+    "tip3": "你可以随时更改这些设置"
+  },
+  "api": "API",
+  "close": "关闭",
+  "save": "保存",
+  "reset": "重置为默认值",
+  "language": "语言",
+  "langEn": "英文",
+  "langZh": "中文"
+}

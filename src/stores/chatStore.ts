@@ -41,6 +41,8 @@ function generateMessageId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
+const DEFAULT_PROVIDER = 'openai';
+
 export const useChatStore = create<ChatStoreState>((set, get) => ({
   messages: [],
   status: 'idle',
@@ -64,8 +66,9 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
     set((state) => ({
       messages: [...state.messages, userMessage],
       status: 'loading',
-      error: null,
     }));
+
+    const startedAt = Date.now();
 
     try {
       const state = get();
@@ -82,15 +85,42 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
         });
       }
 
-      // TODO: 调用实际的 LLM API
+      const api = window.electronAPI?.llm;
+      if (!api) {
+        throw new Error('Electron LLM API is not available. Run inside the desktop app.');
+      }
+
+      const hasKey = await api.hasAPIKey(DEFAULT_PROVIDER);
+      if (!hasKey) {
+        throw new Error(
+          `No ${DEFAULT_PROVIDER} API key configured. Add one in Settings > API.`
+        );
+      }
+
+      const llmMessages = [
+        { role: 'system' as const, content: state.config.systemPrompt },
+        ...contextMessages.map((m) => ({ role: m.role as 'system', content: m.content })),
+        ...state.messages
+          .filter((m) => m.role !== 'system')
+          .slice(-20)
+          .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      ];
+
+      const result = await api.generate(DEFAULT_PROVIDER, llmMessages, {
+        temperature: 0.7,
+        maxTokens: 2048,
+      });
+
       const assistantMessage: ChatMessage = {
         id: generateMessageId(),
         role: 'assistant',
-        content: 'AI response placeholder. Implement LLM API integration.',
+        content: result.content || '',
         timestamp: Date.now(),
+        metadata: {
+          model: result.model,
+          duration: Date.now() - startedAt,
+        },
       };
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       set((state) => ({
         messages: [...state.messages, ...contextMessages, assistantMessage],
@@ -100,7 +130,7 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
       const errorMessage: ChatMessage = {
         id: generateMessageId(),
         role: 'assistant',
-        content: 'Error generating response. Please try again.',
+        content: error instanceof Error ? error.message : 'Error generating response.',
         timestamp: Date.now(),
         isError: true,
       };

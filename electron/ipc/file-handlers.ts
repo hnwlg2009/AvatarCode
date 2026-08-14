@@ -1,5 +1,6 @@
 import { ipcMain, app, dialog } from 'electron';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 
 interface FileEntry {
@@ -35,11 +36,32 @@ class PathSecurity {
     this.allowedPaths.add(workspacePath);
   }
 
-  isPathAllowed(targetPath: string): boolean {
-    const normalized = path.normalize(targetPath);
+  // 追根：目标若存在则解析真实路径（防 symlink 逃逸）；不存在则回退到最近真实祖先 + 剩余片段
+  private toCanonical(targetPath: string): string {
+    let resolved = path.resolve(targetPath);
+    const suffix: string[] = [];
 
-    for (const allowed of this.allowedPaths) {
-      if (normalized.startsWith(allowed)) {
+    while (true) {
+      try {
+        const real = fsSync.realpathSync(resolved);
+        return path.join(real, ...suffix.reverse());
+      } catch {
+        const parent = path.dirname(resolved);
+        if (parent === resolved) {
+          return path.resolve(targetPath);
+        }
+        suffix.push(path.basename(resolved));
+        resolved = parent;
+      }
+    }
+  }
+
+  isPathAllowed(targetPath: string): boolean {
+    const target = this.toCanonical(targetPath).toLowerCase();
+
+    for (const allowedRoot of this.allowedPaths) {
+      const root = this.toCanonical(allowedRoot).toLowerCase();
+      if (target === root || target.startsWith(root + path.sep)) {
         return true;
       }
     }
@@ -47,26 +69,13 @@ class PathSecurity {
   }
 
   validatePath(targetPath: string): void {
-    const normalized = normalizedPath(targetPath);
-    if (!this.isPathAllowed(normalized)) {
+    if (!this.isPathAllowed(targetPath)) {
       throw new Error(`路径不允许访问：${targetPath}`);
-    }
-    
-    // 防止路径遍历攻击
-    if (normalized.includes('..')) {
-      const resolved = path.resolve(normalized);
-      if (!this.isPathAllowed(resolved)) {
-        throw new Error('路径遍历攻击被阻止');
-      }
     }
   }
 }
 
 const pathSecurity = new PathSecurity();
-
-function normalizedPath(filePath: string): string {
-  return path.normalize(filePath);
-}
 
 export function registerFileHandlers(): void {
   // FS-001: file:read handler ✅
@@ -92,6 +101,17 @@ export function registerFileHandlers(): void {
   ipcMain.handle('file:writeBinary', async (event, filePath: string, data: Uint8Array) => {
     pathSecurity.validatePath(filePath);
     await fs.writeFile(filePath, Buffer.from(data));
+  });
+
+  // FS-001: file:exists handler
+  ipcMain.handle('file:exists', async (event, filePath: string): Promise<boolean> => {
+    pathSecurity.validatePath(filePath);
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   // FS-003: file:readdir handler 🆕
@@ -174,19 +194,130 @@ export function registerFileHandlers(): void {
   ipcMain.handle('file:addWorkspacePath', async (event, workspacePath: string) => {
     pathSecurity.addAllowedPath(workspacePath);
   });
-}
 
-export default pathSecurity;
+  // 代码搜索：递归目录，关键字匹配，返回 path/line/snippet
+  ipcMain.handle(
+    'file:searchCode',
+    async (event, query: string, dirPath?: string, maxResults: number = 50) => {
+      pathSecurity.validatePath(dirPath || app.getPath('userData'));
+
+      const EXCLUDED_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'out']);
+      const TEXT_EXTS = new Set([
+        'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'json', 'md', 'css', 'scss', 'less',
+        'html', 'htm', 'vue', 'svelte', 'py', 'java', 'c', 'cpp', 'h', 'hpp', 'cs',
+        'go', 'rs', 'rb', 'php', 'sql', 'yaml', 'yml', 'xml', 'sh', 'bat', 'toml',
+        'ini', 'cfg', 'txt', 'graphql', 'prisma',
+      ]);
+
+      const results: { path: string; line: number; snippet: string }[] = [];
+      const root = dirPath || app.getPath('userData');
+
+      async function walk(dir: string): Promise<void> {
+        if (results.length >= maxResults) return;
+        let entries;
+        try {
+          entries = await fs.readdir(dir, { withFileTypes: true });
+        } catch {
+          return;
+        }
+        for (const entry of entries) {
+          if (results.length >= maxResults) return;
+          if (entry.isDirectory()) {
+            if (EXCLUDED_DIRS.has(entry.name)) continue;
+            await walk(path.join(dir, entry.name));
+          } else if (entry.isFile()) {
+            const ext = entry.name.split('.').pop()?.toLowerCase() || '';
+            if (!TEXT_EXTS.has(ext)) continue;
+            const fullPath = path.join(dir, entry.name);
+            try {
+              const content = await fs.readFile(fullPath, 'utf-8');
+              const lines = content.split(/\r?\n/);
+              for (let i = 0; i < lines.length; i++) {
+                if (lines[i].toLowerCase().includes(query.toLowerCase())) {
+                  results.push({
+                    path: fullPath,
+                    line: i + 1,
+                    snippet: lines[i].trim().slice(0, 200),
+                  });
+                  if (results.length >= maxResults) return;
+                }
+              }
+            } catch {
+              // skip unreadable files
+            }
+          }
+        }
+      }
+
+      await walk(root);
+      return results;
+    }
+  );
+
+  // 文件名搜索：递归目录，按名称匹配 pattern
+  ipcMain.handle('file:search', async (event, pattern: string, options?: any) => {
+    const root = app.getPath('userData');
+    const exclude = options?.exclude || ['node_modules', '.git', 'dist', 'build', 'out'];
+    const maxResults = options?.maxResults || 100;
+
+    const results: { path: string; name: string; size: number; mtime: Date }[] = [];
+    const needle = pattern.toLowerCase();
+
+    async function walk(dir: string): Promise<void> {
+      if (results.length >= maxResults) return;
+      let entries;
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        if (results.length >= maxResults) return;
+        if (entry.isDirectory()) {
+          if (exclude.includes(entry.name)) continue;
+          await walk(path.join(dir, entry.name));
+        } else if (entry.name.toLowerCase().includes(needle)) {
+          const fullPath = path.join(dir, entry.name);
+          try {
+            const stat = await fs.stat(fullPath);
+            results.push({
+              path: fullPath,
+              name: entry.name,
+              size: stat.size,
+              mtime: stat.mtime,
+            });
+          } catch {
+            // skip
+          }
+        }
+      }
+    }
+
+    await walk(root);
+    return results;
+  });
 
   // 文件对话框
-  ipcMain.handle('dialog:openFile', async () => {
+  ipcMain.handle('dialog:openFile', async (): Promise<string | null> => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
     });
-    return result;
+    if (!result.canceled && result.filePaths.length > 0) {
+      // 用户主动选择的文件，其所在目录自动授权，避免拒绝已选路径
+      pathSecurity.addAllowedPath(path.dirname(result.filePaths[0]));
+      return result.filePaths[0];
+    }
+    return null;
   });
 
-  ipcMain.handle('dialog:saveFile', async () => {
+  ipcMain.handle('dialog:saveFile', async (): Promise<string | null> => {
     const result = await dialog.showSaveDialog({});
-    return result;
+    if (!result.canceled && result.filePath) {
+      pathSecurity.addAllowedPath(path.dirname(result.filePath));
+      return result.filePath;
+    }
+    return null;
   });
+}
+
+export default pathSecurity;

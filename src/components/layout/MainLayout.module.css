@@ -41,6 +41,14 @@
   color: var(--accent);
 }
 
+.activityBtn svg {
+  display: block;
+}
+
+.activitySpacer {
+  flex: 1;
+}
+
 .activityBar .active::before {
   content: '';
   position: absolute;
@@ -103,10 +111,105 @@
   max-width: 600px;
 }
 
+.rightPanelTabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.rightPanelTab {
+  flex: 1;
+  padding: 10px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rightPanelTab:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.rightPanelTab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 /* Placeholder */
 .placeholder {
   padding: 20px;
   text-align: center;
   color: var(--text-secondary);
   font-size: 13px;
+}
+
+/* Resize handles */
+.resizeHandle,
+.resizeHandleRight {
+  flex-shrink: 0;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.resizeHandle:hover,
+.resizeHandleRight:hover {
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+/* Explorer */
+.explorerHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.explorerPath {
+  font-size: 12px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.explorerEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.openWorkspaceButton {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.openWorkspaceButton:hover {
+  background: var(--bg-activity-active);
+  border-color: var(--accent);
+}
+
+.treeLoading {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 12px;
 }

@@ -1,51 +1,40 @@
-import { Tool, ToolResult } from '../types/agent.types';
+import { Tool, ToolExecutionResult } from '../types/agent.types';
+import fileSystemService from '../../../services/FileSystemService';
 
-export class SearchTool implements Tool {
-  name = 'code_search';
-  description = '在代码库中搜索内容';
-  parameters = {
-    type: 'object' as const,
+export const searchTool: Tool = {
+  name: 'search_code',
+  description: 'Search for a keyword across source files in the project',
+  parameters: {
+    type: 'object',
     properties: {
-      query: {
-        type: 'string',
-        description: '搜索关键词或正则表达式',
-      },
-      filePattern: {
-        type: 'string',
-        description: '文件匹配模式（如：*.ts, src/**/*.js）',
-      },
-      caseSensitive: {
-        type: 'boolean',
-        description: '是否区分大小写',
-      },
-      maxResults: {
-        type: 'number',
-        description: '最大结果数',
-      },
+      query: { type: 'string', description: 'Search query (case-insensitive)' },
+      path: { type: 'string', description: 'Directory to search in (optional, defaults to project root)' },
     },
-    required: ['query'] as string[],
-  };
+    required: ['query'],
+  },
+  async execute(args: Record<string, any>): Promise<ToolExecutionResult> {
+    const query = args.query as string;
+    if (!query || typeof query !== 'string') {
+      return { success: false, result: null, error: 'Missing required argument: query' };
+    }
 
-  async execute(params: Record<string, any>): Promise<ToolResult> {
     try {
-      const { query, filePattern, caseSensitive = false, maxResults = 50 } = params;
-
-      // 简单实现，实际应该调用搜索服务
-      return {
-        success: true,
-        data: {
-          query,
-          filePattern,
-          results: [],
-          message: `搜索完成：找到 0 个结果`,
-        },
-        message: `在代码库中搜索 "${query}"`,
-      };
-    } catch (error: any) {
+      const matches = await fileSystemService.searchCode(query, args.path as string | undefined);
+      if (!matches || matches.length === 0) {
+        return { success: true, result: `No matches found for "${query}"` };
+      }
+      const formatted = matches
+        .map((m) => `${m.path}:${m.line}: ${m.snippet}`)
+        .join('\n');
+      return { success: true, result: formatted };
+    } catch (error) {
       return {
         success: false,
-        error: error.message,
+        result: null,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
-  }
-}
+  },
+};
+
+export default searchTool;

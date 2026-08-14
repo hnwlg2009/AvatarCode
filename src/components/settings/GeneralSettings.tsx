@@ -1,18 +1,19 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSettingsStore } from '../../stores/settingsStore';
 import styles from './GeneralSettings.module.css';
 
 export const GeneralSettings: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const language = useSettingsStore((s) => s.settings.general.language);
+  const setGeneralSettings = useSettingsStore((s) => s.setGeneralSettings);
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
-    localStorage.setItem('avatarcode-language', lang);
-    
-    // 通知主进程更新菜单语言
-    if (window.electronAPI) {
-      window.electronAPI.send('language-changed', lang);
-    }
+    setGeneralSettings({ language: lang });
+
+    // 通知主进程同步菜单语言
+    window.electronAPI?.send('language-changed', lang);
   };
 
   const languages = [
@@ -28,7 +29,7 @@ export const GeneralSettings: React.FC = () => {
           {languages.map((lang) => (
             <button
               key={lang.value}
-              className={`${styles.languageCard} ${i18n.language === lang.value ? styles.active : ''}`}
+              className={`${styles.languageCard} ${language === lang.value ? styles.active : ''}`}
               onClick={() => handleLanguageChange(lang.value)}
             >
               <span className={styles.languageFlag}>{lang.flag}</span>

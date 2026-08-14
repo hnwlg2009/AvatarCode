@@ -4,6 +4,47 @@
   box-sizing: border-box;
 }
 
+:root {
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Cascadia Mono',
+    'Consolas', 'Menlo', 'SF Mono', monospace;
+}
+
+:root,
+:root[data-theme='dark'] {
+  --bg-primary: #0d0d0d;
+  --bg-panel: #161616;
+  --bg-panel-secondary: #1e1e1e;
+  --bg-activity: #111111;
+  --bg-activity-active: #1f1f1f;
+  --bg-hover: #232323;
+  --border: #2a2a2a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #9a9a9a;
+  --accent: #4d9fff;
+  --accent-secondary: #7c6cf0;
+  --error: #ff6b6b;
+  --success: #51cf66;
+}
+
+:root[data-theme='light'] {
+  --bg-primary: #f5f5f5;
+  --bg-panel: #ffffff;
+  --bg-panel-secondary: #f0f0f0;
+  --bg-activity: #e8e8e8;
+  --bg-activity-active: #d9d9d9;
+  --bg-hover: #e3e3e3;
+  --border: #d0d0d0;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --accent: #2563eb;
+  --accent-secondary: #7c3aed;
+  --error: #dc2626;
+  --success: #16a34a;
+}
+
 html, body, #root {
   width: 100%;
   height: 100%;
@@ -11,13 +52,45 @@ html, body, #root {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #0d0d0d;
   color: #e0e0e0;
+}
+
+code,
+kbd,
+pre {
+  font-family: var(--font-mono);
+}
+
+/* 全局细滚动条：与各面板视觉统一 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #444 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .app {

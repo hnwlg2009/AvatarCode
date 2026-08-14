@@ -163,7 +163,7 @@
 .previewItem {
   padding: 6px 8px;
   font-size: 13px;
-  font-family: 'Monaco', monospace;
+  font-family: var(--font-mono);
   border-radius: 4px;
 }
 

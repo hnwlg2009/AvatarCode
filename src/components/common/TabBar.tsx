@@ -26,6 +26,8 @@ export const TabBar: React.FC<TabBarProps> = ({
             className={`${styles.tab} ${tab.id === activeTabId ? styles.active : ''} ${
               tab.isDirty ? styles.dirty : ''
             }`}
+            data-active={tab.id === activeTabId}
+            data-dirty={tab.isDirty}
             onClick={() => onTabClick(tab.id)}
           >
             <span className={styles.tabName}>{tab.name}</span>

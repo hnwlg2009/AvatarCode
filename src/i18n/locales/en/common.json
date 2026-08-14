@@ -1,0 +1,98 @@
+{
+  "app": {
+    "name": "AvatarCode",
+    "description": "AI-Native Code Editor"
+  },
+  "main": {
+    "explorer": "Explorer",
+    "git": "Source Control",
+    "search": "Search",
+    "chat": "Chat",
+    "agent": "Agent",
+    "settings": "Settings"
+  },
+  "agent": {
+    "title": "AI Agent",
+    "clear": "Clear",
+    "stop": "Stop",
+    "welcome": "Welcome to AI Agent",
+    "hint": "Ask me to help you with coding tasks",
+    "placeholder": "Ask me anything...",
+    "send": "Send",
+    "approval": "Awaiting approval to run:",
+    "approve": "Approve",
+    "deny": "Deny"
+  },
+  "fileTree": {
+    "empty": "No files"
+  },
+  "workspace": {
+    "emptyTitle": "Welcome to AvatarCode",
+    "emptyHint": "Open a file to start editing",
+    "openFile": "Open File",
+    "saveFile": "Save File",
+    "selectFile": "Select File"
+  },
+  "explorer": {
+    "openWorkspace": "Open Workspace",
+    "noWorkspace": "No workspace opened",
+    "saveWorkspace": "Save Workspace Settings"
+  },
+  "api": {
+    "apiKey": "API Key",
+    "baseUrl": "Base URL",
+    "model": "Model",
+    "save": "Save API Settings",
+    "saving": "Saving...",
+    "saved": "API settings saved",
+    "saveFailed": "Failed to save",
+    "llmUnavailable": "Electron LLM API is not available"
+  },
+  "file": {
+    "new": "New File",
+    "open": "Open",
+    "save": "Save",
+    "saveAs": "Save As",
+    "close": "Close",
+    "closeAll": "Close All",
+    "untitled": "Untitled"
+  },
+  "edit": {
+    "undo": "Undo",
+    "redo": "Redo",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "selectAll": "Select All",
+    "find": "Find",
+    "replace": "Replace"
+  },
+  "view": {
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "resetZoom": "Reset Zoom",
+    "toggleFullScreen": "Toggle Full Screen",
+    "toggleDevTools": "Toggle Developer Tools"
+  },
+  "help": {
+    "about": "About",
+    "documentation": "Documentation",
+    "reportIssue": "Report Issue",
+    "checkForUpdates": "Check for Updates"
+  },
+  "dialog": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "save": "Save",
+    "dontSave": "Don't Save",
+    "closeWithoutSaving": "Close without saving?"
+  },
+  "error": {
+    "fileNotFound": "File not found",
+    "permissionDenied": "Permission denied",
+    "unknownError": "An unknown error occurred"
+  }
+}

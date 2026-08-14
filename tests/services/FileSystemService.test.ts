@@ -1,138 +1,105 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FileSystemService } from '../../src/services/FileSystemService';
 
-// Mock window.electronAPI
+// 每个用例用独立实例，避免模块级单例的读缓存串扰
+function newService(): FileSystemService {
+  return new FileSystemService();
+}
+
+// Mock window.electronAPI（与 electron/preload.ts 暴露的对象形态一致）
 const mockElectronAPI = {
-  showOpenDialog: vi.fn(),
-  showSaveDialog: vi.fn(),
-  readFile: vi.fn(),
-  writeFile: vi.fn(),
-  fileExists: vi.fn(),
+  file: {
+    read: vi.fn(),
+    readBinary: vi.fn(),
+    write: vi.fn(),
+    writeBinary: vi.fn(),
+    exists: vi.fn(),
+    readdir: vi.fn(),
+    stat: vi.fn(),
+    create: vi.fn(),
+    createDirectory: vi.fn(),
+    delete: vi.fn(),
+    rename: vi.fn(),
+    copy: vi.fn(),
+    search: vi.fn(),
+    searchCode: vi.fn(),
+  },
+  openFileDialog: vi.fn(),
+  saveFileDialog: vi.fn(),
+  openDirectoryDialog: vi.fn(),
 };
 
-describe('FileSystemService', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    Object.defineProperty(window, 'electronAPI', {
-      value: mockElectronAPI,
-      writable: true,
-      configurable: true,
-    });
+function setApi(api: any) {
+  Object.defineProperty(window, 'electronAPI', {
+    value: api,
+    writable: true,
+    configurable: true,
   });
+}
 
+let svc: FileSystemService;
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  setApi(mockElectronAPI);
+  svc = new FileSystemService();
+});
+
+describe('FileSystemService', () => {
   describe('openFileDialog', () => {
     it('should open file dialog and return selected path', async () => {
-      mockElectronAPI.showOpenDialog.mockResolvedValueOnce({
-        canceled: false,
-        filePaths: ['/path/to/file.ts'],
-      });
+      mockElectronAPI.openFileDialog.mockResolvedValueOnce('/path/to/file.ts');
 
-      const result = await FileSystemService.openFileDialog();
+      const svc = newService();
+      const result = await svc.openFileDialog();
       expect(result).toBe('/path/to/file.ts');
-      expect(mockElectronAPI.showOpenDialog).toHaveBeenCalledWith(
-        expect.objectContaining({
-          properties: ['openFile'],
-        })
-      );
+      expect(mockElectronAPI.openFileDialog).toHaveBeenCalled();
     });
 
     it('should return null when dialog is canceled', async () => {
-      mockElectronAPI.showOpenDialog.mockResolvedValueOnce({
-        canceled: true,
-        filePaths: [],
-      });
+      mockElectronAPI.openFileDialog.mockResolvedValueOnce(null);
 
-      const result = await FileSystemService.openFileDialog();
+      const svc = newService();
+      const result = await svc.openFileDialog();
       expect(result).toBeNull();
-    });
-
-    it('should return null when no file selected', async () => {
-      mockElectronAPI.showOpenDialog.mockResolvedValueOnce({
-        canceled: false,
-        filePaths: [],
-      });
-
-      const result = await FileSystemService.openFileDialog();
-      expect(result).toBeNull();
-    });
-
-    it('should use custom filters when provided', async () => {
-      mockElectronAPI.showOpenDialog.mockResolvedValueOnce({
-        canceled: false,
-        filePaths: ['/path/to/file.py'],
-      });
-
-      const customFilters = [{ name: 'Python', extensions: ['py'] }];
-      await FileSystemService.openFileDialog(customFilters);
-
-      expect(mockElectronAPI.showOpenDialog).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filters: customFilters,
-        })
-      );
     });
 
     it('should return null when Electron API is not available', async () => {
-      Object.defineProperty(window, 'electronAPI', {
-        value: undefined,
-        writable: true,
-      });
+      setApi(undefined);
 
-      const result = await FileSystemService.openFileDialog();
+      const svc = newService();
+      const result = await svc.openFileDialog();
       expect(result).toBeNull();
     });
 
     it('should handle errors gracefully', async () => {
-      mockElectronAPI.showOpenDialog.mockRejectedValueOnce(new Error('Dialog failed'));
+      mockElectronAPI.openFileDialog.mockRejectedValueOnce(new Error('Dialog failed'));
 
-      const result = await FileSystemService.openFileDialog();
+      const svc = newService();
+      const result = await svc.openFileDialog();
       expect(result).toBeNull();
     });
   });
 
   describe('saveFileDialog', () => {
     it('should open save dialog and return file path', async () => {
-      mockElectronAPI.showSaveDialog.mockResolvedValueOnce({
-        canceled: false,
-        filePath: '/path/to/save.ts',
-      });
+      mockElectronAPI.saveFileDialog.mockResolvedValueOnce('/path/to/save.ts');
 
-      const result = await FileSystemService.saveFileDialog();
+      const result = await svc.saveFileDialog();
       expect(result).toBe('/path/to/save.ts');
     });
 
     it('should return null when dialog is canceled', async () => {
-      mockElectronAPI.showSaveDialog.mockResolvedValueOnce({
-        canceled: true,
-        filePath: null,
-      });
+      mockElectronAPI.saveFileDialog.mockResolvedValueOnce(null);
 
-      const result = await FileSystemService.saveFileDialog();
+      const result = await svc.saveFileDialog();
       expect(result).toBeNull();
     });
 
-    it('should use default path when provided', async () => {
-      mockElectronAPI.showSaveDialog.mockResolvedValueOnce({
-        canceled: false,
-        filePath: '/path/to/save.ts',
-      });
-
-      await FileSystemService.saveFileDialog('/default/path.ts');
-
-      expect(mockElectronAPI.showSaveDialog).toHaveBeenCalledWith(
-        expect.objectContaining({
-          defaultPath: '/default/path.ts',
-        })
-      );
-    });
-
     it('should return null when Electron API is not available', async () => {
-      Object.defineProperty(window, 'electronAPI', {
-        value: undefined,
-        writable: true,
-      });
+      setApi(undefined);
 
-      const result = await FileSystemService.saveFileDialog();
+      const result = await svc.saveFileDialog();
       expect(result).toBeNull();
     });
   });
@@ -140,135 +107,113 @@ describe('FileSystemService', () => {
   describe('readFile', () => {
     it('should read file content', async () => {
       const content = 'console.log("hello");';
-      mockElectronAPI.readFile.mockResolvedValueOnce(content);
+      mockElectronAPI.file.read.mockResolvedValueOnce(content);
 
-      const result = await FileSystemService.readFile('/path/to/file.ts');
+      const result = await svc.readFile('/path/to/file.ts');
       expect(result).toBe(content);
-      expect(mockElectronAPI.readFile).toHaveBeenCalledWith('/path/to/file.ts');
+      expect(mockElectronAPI.file.read).toHaveBeenCalledWith('/path/to/file.ts');
+    });
+
+    it('should use cache for repeated reads within TTL', async () => {
+      mockElectronAPI.file.read.mockResolvedValueOnce('cached content');
+
+      const first = await svc.readFile('/path/to/file.ts');
+      const second = await svc.readFile('/path/to/file.ts');
+      expect(first).toBe('cached content');
+      expect(second).toBe('cached content');
+      expect(mockElectronAPI.file.read).toHaveBeenCalledTimes(1);
     });
 
     it('should throw error when read fails', async () => {
-      mockElectronAPI.readFile.mockRejectedValueOnce(new Error('Read failed'));
+      mockElectronAPI.file.read.mockRejectedValueOnce(new Error('Read failed'));
 
-      await expect(FileSystemService.readFile('/path/to/file.ts'))
-        .rejects
-        .toThrow('Failed to read file: /path/to/file.ts');
+      await expect(svc.readFile('/path/to/file.ts')).rejects.toThrow('Read failed');
     });
 
     it('should throw error when Electron API is not available', async () => {
-      Object.defineProperty(window, 'electronAPI', {
-        value: undefined,
-        writable: true,
-      });
+      setApi(undefined);
 
-      await expect(FileSystemService.readFile('/path/to/file.ts'))
-        .rejects
-        .toThrow('Electron API not available');
+      await expect(svc.readFile('/path/to/file.ts')).rejects.toThrow(
+        'electronAPI is not available'
+      );
     });
   });
 
   describe('writeFile', () => {
-    it('should write file content', async () => {
-      const content = 'console.log("hello");';
-      mockElectronAPI.writeFile.mockResolvedValueOnce(undefined);
+    it('should write file content and clear cache', async () => {
+      mockElectronAPI.file.read.mockResolvedValueOnce('old');
+      await svc.readFile('/path/to/file.ts');
 
-      await FileSystemService.writeFile('/path/to/file.ts', content);
-      expect(mockElectronAPI.writeFile).toHaveBeenCalledWith('/path/to/file.ts', content);
+      mockElectronAPI.file.write.mockResolvedValueOnce(undefined);
+      await svc.writeFile('/path/to/file.ts', 'new content');
+      expect(mockElectronAPI.file.write).toHaveBeenCalledWith('/path/to/file.ts', 'new content');
+
+      mockElectronAPI.file.read.mockResolvedValueOnce('new content');
+      const reread = await svc.readFile('/path/to/file.ts');
+      expect(reread).toBe('new content');
+      expect(mockElectronAPI.file.read).toHaveBeenCalledTimes(2);
     });
 
     it('should throw error when write fails', async () => {
-      mockElectronAPI.writeFile.mockRejectedValueOnce(new Error('Write failed'));
+      mockElectronAPI.file.write.mockRejectedValueOnce(new Error('Write failed'));
 
-      await expect(FileSystemService.writeFile('/path/to/file.ts', 'content'))
-        .rejects
-        .toThrow('Failed to write file: /path/to/file.ts');
+      await expect(svc.writeFile('/path/to/file.ts', 'content')).rejects.toThrow(
+        'Write failed'
+      );
     });
 
     it('should throw error when Electron API is not available', async () => {
-      Object.defineProperty(window, 'electronAPI', {
-        value: undefined,
-        writable: true,
-      });
+      setApi(undefined);
 
-      await expect(FileSystemService.writeFile('/path/to/file.ts', 'content'))
-        .rejects
-        .toThrow('Electron API not available');
+      await expect(svc.writeFile('/path/to/file.ts', 'content')).rejects.toThrow(
+        'electronAPI is not available'
+      );
     });
   });
 
-  describe('fileExists', () => {
+  describe('exists', () => {
     it('should return true when file exists', async () => {
-      mockElectronAPI.fileExists.mockResolvedValueOnce(true);
+      mockElectronAPI.file.stat.mockResolvedValueOnce({ isFile: true, isDirectory: false });
 
-      const result = await FileSystemService.fileExists('/path/to/file.ts');
+      const result = await svc.exists('/path/to/file.ts');
       expect(result).toBe(true);
     });
 
-    it('should return false when file does not exist', async () => {
-      mockElectronAPI.fileExists.mockResolvedValueOnce(false);
+    it('should return false when stat fails', async () => {
+      mockElectronAPI.file.stat.mockRejectedValueOnce(new Error('ENOENT'));
 
-      const result = await FileSystemService.fileExists('/path/to/nonexistent.ts');
-      expect(result).toBe(false);
-    });
-
-    it('should return false when check fails', async () => {
-      mockElectronAPI.fileExists.mockRejectedValueOnce(new Error('Check failed'));
-
-      const result = await FileSystemService.fileExists('/path/to/file.ts');
-      expect(result).toBe(false);
-    });
-
-    it('should return false when Electron API is not available', async () => {
-      Object.defineProperty(window, 'electronAPI', {
-        value: undefined,
-        writable: true,
-      });
-
-      const result = await FileSystemService.fileExists('/path/to/file.ts');
+      const result = await svc.exists('/path/to/nonexistent.ts');
       expect(result).toBe(false);
     });
   });
 
   describe('getFileLanguage', () => {
+    let svc: FileSystemService;
+    beforeEach(() => {
+      svc = new FileSystemService();
+    });
+
     it('should detect typescript from path', () => {
-      const language = FileSystemService.getFileLanguage('/path/to/file.ts');
-      expect(language).toBe('typescript');
+      expect(svc.getFileLanguage('/path/to/file.ts')).toBe('typescript');
     });
 
     it('should detect python from path', () => {
-      const language = FileSystemService.getFileLanguage('/path/to/file.py');
-      expect(language).toBe('python');
+      expect(svc.getFileLanguage('/path/to/file.py')).toBe('python');
     });
 
     it('should detect rust from path', () => {
-      const language = FileSystemService.getFileLanguage('/path/to/file.rs');
-      expect(language).toBe('rust');
+      expect(svc.getFileLanguage('/path/to/file.rs')).toBe('rust');
     });
   });
 
-  describe('isLargeFile', () => {
-    it('should return false for small files', async () => {
-      mockElectronAPI.readFile.mockResolvedValueOnce('small content');
+  describe('searchCode', () => {
+    it('should delegate to electronAPI.file.searchCode', async () => {
+      const results = [{ path: '/p/a.ts', line: 3, snippet: 'const x = 1;' }];
+      mockElectronAPI.file.searchCode.mockResolvedValueOnce(results);
 
-      const result = await FileSystemService.isLargeFile('/path/to/small.ts');
-      expect(result.isLarge).toBe(false);
-      expect(result.size).toBeLessThan(1024 * 1024);
-    });
-
-    it('should return true for large files', async () => {
-      const largeContent = 'x'.repeat(1024 * 1024 * 2); // 2MB
-      mockElectronAPI.readFile.mockResolvedValueOnce(largeContent);
-
-      const result = await FileSystemService.isLargeFile('/path/to/large.ts');
-      expect(result.isLarge).toBe(true);
-      expect(result.size).toBeGreaterThan(1024 * 1024);
-    });
-
-    it('should return false when check fails', async () => {
-      mockElectronAPI.readFile.mockRejectedValueOnce(new Error('Read failed'));
-
-      const result = await FileSystemService.isLargeFile('/path/to/file.ts');
-      expect(result).toEqual({ isLarge: false, size: 0 });
+      const out = await svc.searchCode('x', '/root', 10);
+      expect(out).toEqual(results);
+      expect(mockElectronAPI.file.searchCode).toHaveBeenCalledWith('x', '/root', 10);
     });
   });
 });

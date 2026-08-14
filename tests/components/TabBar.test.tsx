@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TabBar } from '../../src/components/common/TabBar';
 
@@ -77,7 +77,7 @@ describe('TabBar', () => {
   });
 
   it('should show active state', () => {
-    const { container } = render(
+    render(
       <TabBar
         tabs={mockTabs}
         activeTabId="tab1"
@@ -86,8 +86,8 @@ describe('TabBar', () => {
       />
     );
 
-    const activeTab = screen.getByText('file1.ts').closest('.tab');
-    expect(activeTab).toHaveClass('active');
+    expect(screen.getByText('file1.ts').closest('[data-active="true"]')).not.toBeNull();
+    expect(screen.getByText('file2.py').closest('[data-active="false"]')).not.toBeNull();
   });
 
   it('should show dirty indicator', () => {
@@ -100,8 +100,7 @@ describe('TabBar', () => {
       />
     );
 
-    const dirtyTab = screen.getByText('file2.py').closest('.tab');
-    expect(dirtyTab).toHaveClass('dirty');
+    expect(screen.getByText('file2.py').closest('[data-dirty="true"]')).not.toBeNull();
     expect(screen.getByText('•')).toBeInTheDocument();
   });
 

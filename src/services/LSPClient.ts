@@ -61,10 +61,8 @@ export class LSPClient extends EventEmitter {
     }
 
     try {
-      // 发送 shutdown 请求
-      await this.sendRequest('shutdown', {});
-
-      // 发送 exit 通知
+      // 模拟实现没有真实进程响应 shutdown，直接发通知并清理
+      this.sendNotification('shutdown');
       this.sendNotification('exit');
 
       // 清理进程
@@ -74,6 +72,11 @@ export class LSPClient extends EventEmitter {
       }
 
       this.isRunning = false;
+
+      // 拒绝所有 pending 请求
+      for (const [, pending] of this.pendingRequests.entries()) {
+        pending.reject(new Error('LSP client stopped'));
+      }
       this.pendingRequests.clear();
       this.buffer = '';
 
@@ -138,10 +141,15 @@ export class LSPClient extends EventEmitter {
    * 代码补全
    */
   async getCompletion(uri: string, position: Position): Promise<CompletionItem[]> {
-    const result = await this.sendRequest('textDocument/completion', {
-      textDocument: { uri },
-      position,
-    });
+    let result;
+    try {
+      result = await this.sendRequest('textDocument/completion', {
+        textDocument: { uri },
+        position,
+      });
+    } catch {
+      return [];
+    }
 
     if (!result) {
       return [];

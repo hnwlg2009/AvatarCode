@@ -1,0 +1,16 @@
+{
+  "title": "AI Assistant",
+  "clearChat": "Clear Chat",
+  "greeting": "Hello! I'm your AI coding assistant.",
+  "helpTitle": "I can help you:",
+  "helpExplain": "Explain code",
+  "helpOptimize": "Optimize code",
+  "helpAnswer": "Answer programming questions",
+  "helpGenerate": "Generate code snippets",
+  "userRole": "You",
+  "aiRole": "AI",
+  "inputPlaceholder": "Type your message...",
+  "send": "Send",
+  "stop": "Stop",
+  "loading": "Thinking..."
+}

@@ -102,7 +102,7 @@ export class FileService {
    * 检查文件是否为大文件 (>1MB)
    */
   static isLargeFile(sizeInBytes: number): boolean {
-    return sizeInBytes > 1024 * 1024; // 1MB
+    return sizeInBytes >= 1024 * 1024; // 1MB
   }
 
   /**

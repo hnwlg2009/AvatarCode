@@ -1,158 +1,236 @@
-import {
-  Agent,
-  AgentState,
-  AgentRole,
-  AgentTask,
-  TaskStep,
-  AgentMessage,
-  OrchestratorState,
-  Tool,
-  LLMTool,
-} from './types/agent.types';
-import { LLMFactory, LLMProvider, LLMConfig, LLMMessage } from './llm/LLMFactory';
+import { AgentState, AgentType, AgentTask, AgentPlan, AgentMessage, AgentRunEvent } from './types/agent.types';
+import type { LLMMessage, LLMToolCall } from './llm/types';
+import { ToolManager } from './ToolManager';
+
+const MAX_ITERATIONS = 20;
 
 export class AgentOrchestrator {
-  private agents: Record<AgentRole, Agent>;
-  private tools: Map<string, Tool> = new Map();
-  private llmProvider: LLMProvider | null = null;
-  private history: AgentTask[] = [];
+  private state: AgentState = AgentState.IDLE;
+  private currentPlan: AgentPlan | null = null;
+  private toolManager: ToolManager;
+  private listeners: ((event: AgentRunEvent) => void)[] = [];
+  private messages: AgentMessage[] = [];
 
-  constructor(config?: LLMConfig) {
-    this.agents = {
-      explore: this.createAgent('explore', 'Explore Agent', '代码库分析专家'),
-      plan: this.createAgent('plan', 'Plan Agent', '任务规划专家'),
-      execute: this.createAgent('execute', 'Execute Agent', '代码执行专家'),
-      review: this.createAgent('review', 'Review Agent', '代码审查专家'),
+  constructor() {
+    this.toolManager = new ToolManager();
+  }
+
+  getState(): AgentState {
+    return this.state;
+  }
+
+  setState(state: AgentState): void {
+    this.state = state;
+    this.emit({ type: 'stateChanged', state });
+  }
+
+  onEvent(listener: (event: AgentRunEvent) => void): () => void {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== listener);
     };
+  }
 
-    if (config) {
-      this.llmProvider = LLMFactory.createProvider(config);
+  getToolManager(): ToolManager {
+    return this.toolManager;
+  }
+
+  getMessages(): AgentMessage[] {
+    return this.messages;
+  }
+
+  private emit(event: AgentRunEvent): void {
+    this.listeners.forEach((listener) => listener(event));
+  }
+
+  private toLLMMessages(): LLMMessage[] {
+    return this.messages
+      .filter((m) => m.role !== 'tool' || m.toolResult)
+      .map((m) => {
+        if (m.role === 'tool' && m.toolResult) {
+          const toolCall = m.toolCalls?.[0];
+          return {
+            role: 'tool' as const,
+            content: m.toolResult.result
+              ? typeof m.toolResult.result === 'string'
+                ? m.toolResult.result
+                : JSON.stringify(m.toolResult.result)
+              : (m.toolResult.error ?? ''),
+            name: toolCall?.name,
+            toolCallId: m.toolResult.toolCallId || toolCall?.id,
+          };
+        }
+        if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
+          return {
+            role: 'assistant' as const,
+            content: m.content || '',
+            toolCalls: m.toolCalls,
+          };
+        }
+        return { role: m.role as 'user' | 'assistant' | 'system', content: m.content };
+      });
+  }
+
+  async run(
+    input: string,
+    context: {
+      rootPath: string;
+      llm: import('./llm/types').LLMProvider;
+      onMessage: (message: AgentMessage) => void;
     }
-  }
+  ): Promise<string> {
+    this.setState(AgentState.EXECUTING);
+    this.messages = [];
 
-  private createAgent(role: AgentRole, name: string, description: string): Agent {
-    return {
-      id: role,
-      role,
-      name,
-      description,
-      state: AgentState.IDLE,
-      messages: [],
+    const userMessage: AgentMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      role: 'user',
+      content: input,
+      timestamp: Date.now(),
     };
-  }
-
-  initializeLLM(config: LLMConfig): void {
-    this.llmProvider = LLMFactory.createProvider(config);
-  }
-
-  registerTool(tool: Tool): void {
-    this.tools.set(tool.name, tool);
-  }
-
-  async startTask(taskDescription: string): Promise<AgentTask> {
-    const task: AgentTask = {
-      id: `task-${Date.now()}`,
-      description: taskDescription,
-      status: 'in-progress',
-      steps: [],
-      result: '',
-    };
+    this.messages.push(userMessage);
+    context.onMessage(userMessage);
 
     try {
-      const exploreResult = await this.executeAgent('explore', `分析：${taskDescription}`);
-      const planResult = await this.executeAgent(
-        'plan',
-        `计划：${taskDescription}\n分析：${exploreResult}`
-      );
-      task.steps = this.parsePlanToSteps(planResult);
+      let finalContent = '';
 
-      for (const step of task.steps) {
-        step.status = 'running';
-        try {
-          const stepResult = await this.executeAgent('execute', `执行：${step.description}`);
-          step.input = stepResult;
-          step.status = 'completed';
-        } catch (error: any) {
-          step.error = error.message;
-          step.status = 'failed';
+      for (let i = 0; i < MAX_ITERATIONS; i++) {
+        const response = await context.llm.generateWithTools!(
+          this.toLLMMessages(),
+          this.toolManager.toLLMToolSchema()
+        );
+
+        if (!response.toolCalls || response.toolCalls.length === 0) {
+          finalContent = response.content || '';
+          const assistantMessage: AgentMessage = {
+            id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            role: 'assistant',
+            content: finalContent,
+            timestamp: Date.now(),
+          };
+          this.messages.push(assistantMessage);
+          context.onMessage(assistantMessage);
+          this.setState(AgentState.COMPLETED);
+          return finalContent;
+        }
+
+        const assistantToolMessage: AgentMessage = {
+          id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          role: 'assistant',
+          content: response.content || '',
+          timestamp: Date.now(),
+          toolCalls: response.toolCalls,
+        };
+        this.messages.push(assistantToolMessage);
+        context.onMessage(assistantToolMessage);
+
+        for (const toolCall of response.toolCalls) {
+          this.emit({ type: 'toolStarted', toolCall });
+
+          const result = await this.toolManager.executeTool(toolCall.name, toolCall.arguments);
+
+          this.emit({
+            type: 'toolFinished',
+            toolCall,
+            toolResult: result,
+          });
+
+          const toolResultMessage: AgentMessage = {
+            id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            role: 'tool',
+            content: '',
+            timestamp: Date.now(),
+            toolCalls: [toolCall],
+            toolResult: {
+              toolCallId: toolCall.id,
+              result: result.result,
+              error: result.error,
+            },
+          };
+          this.messages.push(toolResultMessage);
         }
       }
 
-      const reviewResult = await this.executeAgent('review', `审查：${taskDescription}`);
-      task.result = reviewResult;
-      task.status = 'completed';
-      this.history.push(task);
-      return task;
-    } catch (error: any) {
-      task.status = 'failed';
-      task.error = error.message;
+      finalContent = 'Reached maximum tool-call iterations without a final answer.';
+      const assistantMessage: AgentMessage = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'assistant',
+        content: finalContent,
+        timestamp: Date.now(),
+      };
+      this.messages.push(assistantMessage);
+      context.onMessage(assistantMessage);
+      this.setState(AgentState.COMPLETED);
+      return finalContent;
+    } catch (error) {
+      this.setState(AgentState.ERROR);
+      const errorMessage: AgentMessage = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'assistant',
+        content: `Error: ${error instanceof Error ? error.message : String(error)}`,
+        timestamp: Date.now(),
+      };
+      this.messages.push(errorMessage);
+      context.onMessage(errorMessage);
       throw error;
     }
   }
 
-  private async executeAgent(role: AgentRole, prompt: string): Promise<string> {
-    const agent = this.agents[role];
-    agent.state = AgentState.EXECUTING;
+  // --- Legacy plan API (kept for compatibility) ---
 
-    try {
-      if (!this.llmProvider) {
-        return `[${role}] ${prompt} (LLM 未初始化)`;
-      }
+  async createPlan(title: string, tasks: Omit<AgentTask, 'id' | 'status'>[]): Promise<AgentPlan> {
+    const plan: AgentPlan = {
+      id: `plan-${Date.now()}`,
+      title,
+      tasks: tasks.map((task, index) => ({
+        ...task,
+        id: `task-${Date.now()}-${index}`,
+        status: 'pending',
+      })),
+      status: 'draft',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    this.currentPlan = plan;
+    return plan;
+  }
 
-      const tools: LLMTool[] = Array.from(this.tools.values()).map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters,
-      }));
-
-      const messages: LLMMessage[] = [
-        { role: 'system', content: `你是 ${agent.name} - ${agent.description}` },
-        { role: 'user', content: prompt },
-      ];
-
-      let response;
-      if (this.llmProvider.generateWithTools) {
-        response = await this.llmProvider.generateWithTools(messages, tools);
-      } else {
-        response = await this.llmProvider.generate(messages);
-      }
-
-      const agentMessage: AgentMessage = {
-        id: `msg-${Date.now()}`,
-        role: 'agent',
-        content: response.content,
-        timestamp: Date.now(),
-        metadata: { agentId: agent.id },
-      };
-      agent.messages.push(agentMessage);
-
-      return response.content;
-    } finally {
-      agent.state = AgentState.IDLE;
+  async approvePlan(planId: string): Promise<void> {
+    if (this.currentPlan && this.currentPlan.id === planId) {
+      this.currentPlan.status = 'approved';
+      this.currentPlan.updatedAt = Date.now();
     }
   }
 
-  private parsePlanToSteps(plan: string): TaskStep[] {
-    const lines = plan.split('\n').filter((line) => line.trim());
-    return lines.map((line, index) => ({
-      id: `step-${index}`,
-      description: line,
-      agent: 'execute' as AgentRole,
-      status: 'pending' as TaskStep['status'],
-    }));
+  async executePlan(planId: string): Promise<void> {
+    if (!this.currentPlan || this.currentPlan.id !== planId) {
+      throw new Error('Plan not found');
+    }
+
+    this.setState(AgentState.EXECUTING);
+    this.currentPlan.status = 'executing';
+    this.currentPlan.updatedAt = Date.now();
+
+    for (const task of this.currentPlan.tasks) {
+      if (task.status === 'pending') {
+        task.status = 'in_progress';
+        try {
+          task.status = 'completed';
+        } catch (error) {
+          task.status = 'failed';
+          task.error = error instanceof Error ? error.message : String(error);
+        }
+        this.currentPlan.updatedAt = Date.now();
+      }
+    }
+
+    this.currentPlan.status = 'completed';
+    this.setState(AgentState.COMPLETED);
   }
 
-  getState(): OrchestratorState {
-    return {
-      agents: { ...this.agents },
-      state: AgentState.IDLE,
-      history: [...this.history],
-    };
-  }
-
-  reset(): void {
-    Object.values(this.agents).forEach((agent) => {
-      agent.state = AgentState.IDLE;
-    });
+  getCurrentPlan(): AgentPlan | null {
+    return this.currentPlan;
   }
 }
+
+export default AgentOrchestrator;

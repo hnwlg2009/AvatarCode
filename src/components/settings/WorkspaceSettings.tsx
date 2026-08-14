@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSettingsStore from '../../stores/settingsStore';
 import styles from './WorkspaceSettings.module.css';
 
 export const WorkspaceSettings: React.FC = () => {
+  const { t } = useTranslation();
   const {
     workspacePath,
     workspaceSettings,
     isLoading,
     loadWorkspaceSettings,
     saveWorkspaceSettings,
-    setEditorSettings,
-    setAppearanceSettings,
-    setGitSettings,
+    setWorkspaceSettings,
   } = useSettingsStore();
 
   const [localSettings, setLocalSettings] = useState(workspaceSettings);
@@ -31,11 +31,12 @@ export const WorkspaceSettings: React.FC = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      setWorkspaceSettings(localSettings);
       await saveWorkspaceSettings();
-      setMessage({ type: 'success', text: '工作区配置已保存' });
+      setMessage({ type: 'success', text: t('settings.workspace.saved') });
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
-      setMessage({ type: 'error', text: `保存失败：${error.message}` });
+      setMessage({ type: 'error', text: `${t('settings.workspace.saveFailed')}：${error.message}` });
     } finally {
       setIsSaving(false);
     }
@@ -44,8 +45,8 @@ export const WorkspaceSettings: React.FC = () => {
   if (!workspacePath) {
     return (
       <div className={styles.emptyWorkspace}>
-        <p>未打开工作区</p>
-        <p className={styles.hint}>请先打开一个工作区以配置工作区特定设置</p>
+        <p>{t('settings.workspace.emptyTitle')}</p>
+        <p className={styles.hint}>{t('settings.workspace.emptyHint')}</p>
       </div>
     );
   }
@@ -53,19 +54,19 @@ export const WorkspaceSettings: React.FC = () => {
   return (
     <div className={styles.workspaceSettings}>
       <div className={styles.header}>
-        <h3>工作区设置</h3>
+        <h3>{t('settings.workspace.title')}</h3>
         <span className={styles.path}>{workspacePath}</span>
       </div>
 
       {message && <div className={`${styles.message} ${styles[message.type]}`}>{message.text}</div>}
 
-      {isLoading && <div className={styles.loading}>加载中...</div>}
+      {isLoading && <div className={styles.loading}>{t('settings.workspace.loading')}</div>}
 
       <div className={styles.section}>
-        <h4>编辑器设置</h4>
+        <h4>{t('settings.workspace.editor')}</h4>
         <div className={styles.formGroup}>
           <label>
-            字体大小：
+            {t('settings.workspace.fontSize')}：
             <input
               type="number"
               value={localSettings.editor?.fontSize ?? 14}
@@ -81,7 +82,7 @@ export const WorkspaceSettings: React.FC = () => {
         </div>
         <div className={styles.formGroup}>
           <label>
-            Tab 大小：
+            {t('settings.workspace.tabSize')}：
             <input
               type="number"
               value={localSettings.editor?.tabSize ?? 2}
@@ -108,7 +109,7 @@ export const WorkspaceSettings: React.FC = () => {
               }
               disabled={isLoading}
             />
-            自动换行
+            {t('settings.workspace.wordWrap')}
           </label>
         </div>
         <div className={styles.formGroup}>
@@ -124,16 +125,16 @@ export const WorkspaceSettings: React.FC = () => {
               }
               disabled={isLoading}
             />
-            自动保存
+            {t('settings.workspace.autoSave')}
           </label>
         </div>
       </div>
 
       <div className={styles.section}>
-        <h4>Git 设置</h4>
+        <h4>{t('settings.workspace.git')}</h4>
         <div className={styles.formGroup}>
           <label>
-            用户名：
+            {t('settings.workspace.userName')}：
             <input
               type="text"
               value={localSettings.git?.userName ?? ''}
@@ -144,13 +145,13 @@ export const WorkspaceSettings: React.FC = () => {
                 })
               }
               disabled={isLoading}
-              placeholder="例如：devin WLG"
+              placeholder={t('settings.workspace.userNamePlaceholder')}
             />
           </label>
         </div>
         <div className={styles.formGroup}>
           <label>
-            邮箱：
+            {t('settings.workspace.userEmail')}：
             <input
               type="email"
               value={localSettings.git?.userEmail ?? ''}
@@ -161,7 +162,7 @@ export const WorkspaceSettings: React.FC = () => {
                 })
               }
               disabled={isLoading}
-              placeholder="例如：devin@example.com"
+              placeholder={t('settings.workspace.userEmailPlaceholder')}
             />
           </label>
         </div>
@@ -169,13 +170,13 @@ export const WorkspaceSettings: React.FC = () => {
 
       <div className={styles.actions}>
         <button onClick={handleSave} disabled={isLoading || isSaving} className={styles.saveButton}>
-          {isSaving ? '保存中...' : '保存配置'}
+          {isSaving ? t('settings.workspace.saving') : t('settings.workspace.save')}
         </button>
         <button
           onClick={() => window.open('.avatarcode/settings.json')}
           className={styles.openButton}
         >
-          打开配置文件
+          {t('settings.workspace.openConfig')}
         </button>
       </div>
     </div>

@@ -3,38 +3,74 @@ import { ProductionLSPClient } from '../../src/services/ProductionLSPClient';
 import { spawn } from 'child_process';
 
 // Mock child_process
-vi.mock('child_process', () => ({
-  spawn: vi.fn(() => ({
-    stdout: {
-      on: vi.fn((event, cb) => {
-        if (event === 'data') {
-          // 模拟 initialize 响应
-          setTimeout(() => {
-            cb(Buffer.from(JSON.stringify({
-              jsonrpc: '2.0',
-              id: 1,
-              result: { capabilities: {} },
-            })));
-          }, 10);
-        }
-      }),
-    },
-    stderr: {
-      on: vi.fn(),
-    },
-    on: vi.fn((event, cb) => {
-      if (event === 'exit') {
-        cb(0);
-      }
-      if (event === 'error') {
-        cb(new Error('Mock error'));
-      }
+const { mockSpawn, autoRespond } = vi.hoisted(() => {
+  const state = { enabled: true, shutdownOnly: false };
+  const respond = (id: number, dataCallbacks: Array<(buf: Buffer) => void>) => {
+    setTimeout(() => {
+      const body = JSON.stringify({ jsonrpc: '2.0', id, result: {} });
+      const framed = `Content-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`;
+      dataCallbacks.forEach((cb) => cb(Buffer.from(framed)));
+    }, 10);
+  };
+  return {
+    mockSpawn: vi.fn(() => {
+      const dataCallbacks: Array<(buf: Buffer) => void> = [];
+      return {
+        stdout: {
+          on: vi.fn((event: string, cb: (buf: Buffer) => void) => {
+            if (event === 'data') {
+              dataCallbacks.push(cb);
+            }
+          }),
+        },
+        stderr: {
+          on: vi.fn(),
+        },
+        on: vi.fn((event: string, cb: (code: number) => void) => {
+          // 仅注册回调，不主动触发 error，避免 start() 立即失败
+          if (event === 'exit') {
+            cb(0);
+          }
+        }),
+        stdin: {
+          write: vi.fn((data: Buffer | string) => {
+            if (!state.enabled) return;
+            const content = data.toString().split('\r\n\r\n')[1];
+            if (!content) return;
+            try {
+              const req = JSON.parse(content);
+              if (req.id !== undefined) {
+                if (!state.shutdownOnly || req.method === 'shutdown') {
+                  respond(req.id, dataCallbacks);
+                }
+              }
+            } catch {
+              // 非 JSON-RPC 请求，忽略
+            }
+          }),
+        },
+        kill: vi.fn(),
+      };
     }),
-    stdin: {
-      write: vi.fn(),
+    autoRespond: {
+      set: (value: boolean) => {
+        state.enabled = value;
+      },
+      setShutdownOnly: (value: boolean) => {
+        state.shutdownOnly = value;
+      },
     },
-    kill: vi.fn(),
-  })),
+  };
+});
+
+function wrap(body: object): string {
+  const json = JSON.stringify(body);
+  return `Content-Length: ${Buffer.byteLength(json)}\r\n\r\n${json}`;
+}
+
+vi.mock('child_process', () => ({
+  spawn: mockSpawn,
+  default: { spawn: mockSpawn },
 }));
 
 describe('ProductionLSPClient', () => {
@@ -51,9 +87,13 @@ describe('ProductionLSPClient', () => {
   beforeEach(() => {
     client = new ProductionLSPClient();
     vi.clearAllMocks();
+    autoRespond.set(true);
+    autoRespond.setShutdownOnly(false);
   });
   
   afterEach(async () => {
+    autoRespond.set(true);
+    autoRespond.setShutdownOnly(false);
     await client.stop().catch(() => {});
   });
   
@@ -94,26 +134,30 @@ describe('ProductionLSPClient', () => {
   describe('stop', () => {
     it('should stop gracefully', async () => {
       await client.start(mockConfig);
-      
+
       const stoppedCallback = vi.fn();
       client.on('stopped', stoppedCallback);
-      
+
+      const proc = client['process'];
       await client.stop();
-      
-      expect(client['process']?.kill).toHaveBeenCalled();
+
+      expect(proc?.kill).toHaveBeenCalled();
       expect(client.isRunning).toBe(false);
       expect(stoppedCallback).toHaveBeenCalled();
     });
     
     it('should clean up pending requests', async () => {
       await client.start(mockConfig);
-      
+
+      // 只对 shutdown 自动响应，completion 请求保持 pending
+      autoRespond.setShutdownOnly(true);
+
       // Start a request but don't resolve it
       const completionPromise = client.getCompletion('file:///test.ts', { line: 0, character: 0 });
-      
+
       // Stop client
       await client.stop();
-      
+
       // Request should be rejected
       await expect(completionPromise).rejects.toThrow('LSP client stopped');
     });
@@ -176,7 +220,7 @@ describe('ProductionLSPClient', () => {
       
       // Simulate response
       setTimeout(() => {
-        client['handleData'](JSON.stringify(mockResponse));
+        client['handleData'](wrap(mockResponse));
       }, 10);
       
       const result = await client.getCompletion('file:///test.ts', { line: 0, character: 5 });
@@ -185,8 +229,9 @@ describe('ProductionLSPClient', () => {
       expect(result[0].label).toBe('console');
     });
     
-    it('should handle timeout', async () => {
-      // Don't mock response - should timeout
+    it('should handle timeout', { timeout: 15000 }, async () => {
+      // 关闭自动响应 - 请求应该超时（sendRequest 默认 10s 超时）
+      autoRespond.set(false);
       await expect(
         client.getCompletion('file:///test.ts', { line: 0, character: 5 })
       ).rejects.toThrow('Request timeout');
@@ -203,7 +248,7 @@ describe('ProductionLSPClient', () => {
       };
       
       setTimeout(() => {
-        client['handleData'](JSON.stringify(mockError));
+        client['handleData'](wrap(mockError));
       }, 10);
       
       await expect(
@@ -229,22 +274,22 @@ describe('ProductionLSPClient', () => {
       expect(client['pendingRequests'].has(1)).toBe(false);
     });
     
-    it('should handle incomplete messages', () => {
+it('should handle incomplete messages', () => {
       const mockMessage = {
         jsonrpc: '2.0',
         id: 1,
         result: {},
       };
-      
+
       const header = `Content-Length: ${Buffer.byteLength(JSON.stringify(mockMessage))}\r\n\r\n`;
       const data = header + JSON.stringify(mockMessage);
-      
-      // Send partial data
-      client['handleData'](data.substring(0, 10));
+
+      // Send partial data (header complete, body incomplete)
+      client['handleData'](data.substring(0, header.length + 5));
       expect(client['contentLength']).toBeGreaterThan(0);
-      
+
       // Send rest
-      client['handleData'](data.substring(10));
+      client['handleData'](data.substring(header.length + 5));
       expect(client['contentLength']).toBe(-1);
     });
     
@@ -258,7 +303,7 @@ describe('ProductionLSPClient', () => {
         params: { uri: 'file:///test.ts', diagnostics: [] },
       };
       
-      client['handleData'](JSON.stringify(mockNotification));
+      client['handleData'](wrap(mockNotification));
       
       expect(notificationCallback).toHaveBeenCalledWith(
         'textDocument/publishDiagnostics',

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { defaultEditorConfig, largeFileConfig, getEditorOptions, IEditorConfig } from '../../../src/config/editor.config';
+import { defaultEditorConfig, largeFileConfig, getEditorOptions, IEditorConfig } from '../../src/config/editor.config';
 
 describe('EditorConfig', () => {
   describe('defaultEditorConfig', () => {

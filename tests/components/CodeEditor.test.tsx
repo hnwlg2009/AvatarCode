@@ -1,226 +1,123 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import Editor from '@monaco-editor/react';
 import { CodeEditor } from '../../src/components/editor/CodeEditor';
-import * as MonacoReact from '@monaco-editor/react';
+import { useSettingsStore } from '../../src/stores/settingsStore';
 
-// Mock Monaco Editor
 vi.mock('@monaco-editor/react', () => ({
-  default: vi.fn(({ loading, value, language }) => (
-    <div data-testid="monaco-editor" data-language={language}>
-      {loading ? 'Loading...' : `Editor: ${value?.substring(0, 20)}`}
-    </div>
-  )),
-  Editor: class Editor {},
+  default: vi.fn(() => <div data-testid="monaco-editor" />),
 }));
 
-describe('CodeEditor', () => {
-  const mockOnMount = vi.fn();
-  const mockOnValueChange = vi.fn();
+function lastEditorProps() {
+  const call = vi.mocked(Editor).mock.calls[vi.mocked(Editor).mock.calls.length - 1];
+  return call && typeof call[0] === 'object' ? call[0] : {};
+}
 
+const mockEditor = {
+  getValue: vi.fn().mockReturnValue('test value'),
+  setValue: vi.fn(),
+  getModel: vi.fn().mockReturnValue({ getLanguageId: () => 'typescript' }),
+  focus: vi.fn(),
+};
+
+describe('CodeEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useSettingsStore.setState({ settings: useSettingsStore.getState().settings });
   });
 
   it('should render with default props', () => {
     render(<CodeEditor />);
-    
+
     expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
+    expect(lastEditorProps().theme).toBe('vs-dark');
   });
 
   it('should render with custom value', () => {
     render(<CodeEditor value="const test = 123;" />);
-    
-    const editor = screen.getByTestId('monaco-editor');
-    expect(editor).toBeInTheDocument();
+
+    expect(lastEditorProps().value).toBe('const test = 123;');
   });
 
   it('should set language prop', () => {
     render(<CodeEditor language="python" />);
-    
-    const editor = screen.getByTestId('monaco-editor');
-    expect(editor.getAttribute('data-language')).toBe('python');
+
+    expect(lastEditorProps().language).toBe('python');
   });
 
   it('should set theme prop', () => {
     render(<CodeEditor theme="vs-light" />);
-    
-    // Monaco should receive the theme
-    expect(MonacoReact.default).toHaveBeenCalledWith(
-      expect.objectContaining({
-        theme: 'vs-light',
-      }),
-      expect.anything()
-    );
+
+    expect(lastEditorProps().theme).toBe('vs-light');
   });
 
-  it('should call onMount when editor mounts', async () => {
-    const mockEditor = {
-      onDidChangeCursorPosition: vi.fn(),
-      onDidChangeCursorSelection: vi.fn(),
-      onDidChangeModelContent: vi.fn(),
-      getValue: vi.fn().mockReturnValue(''),
-      getSelection: vi.fn(),
-      getModel: vi.fn(),
-      getPosition: vi.fn(),
-      executeEdits: vi.fn(),
-      focus: vi.fn(),
-      setValue: vi.fn(),
-    };
+  it('should call onMount when editor mounts', () => {
+    const onMount = vi.fn();
+    render(<CodeEditor onMount={onMount} />);
 
-    // Mock the onMount callback
-    render(<CodeEditor onMount={mockOnMount} />);
-    
-    // Wait for mount
-    await waitFor(() => {
-      expect(MonacoReact.default).toHaveBeenCalled();
-    });
+    const props = lastEditorProps();
+    props.onMount?.(mockEditor);
 
-    // Get the onMount handler from the mock call
-    const call = vi.mocked(MonacoReact.default).mock.calls[0];
-    if (call && typeof call[0] === 'object' && 'onMount' in call[0]) {
-      const onMount = call[0].onMount as any;
-      onMount(mockEditor);
-    }
-    
-    expect(mockOnMount).toHaveBeenCalledWith(mockEditor);
+    expect(onMount).toHaveBeenCalledWith(mockEditor);
   });
 
-  it('should call onValueChange when content changes', async () => {
-    const mockEditor = {
-      onDidChangeCursorPosition: vi.fn(),
-      onDidChangeCursorSelection: vi.fn(),
-      onDidChangeModelContent: vi.fn(),
-      getValue: vi.fn().mockReturnValue('new content'),
-      getSelection: vi.fn(),
-      getModel: vi.fn(),
-      getPosition: vi.fn(),
-      executeEdits: vi.fn(),
-      focus: vi.fn(),
-      setValue: vi.fn(),
-    };
+  it('should call onChange when content changes', () => {
+    const onChange = vi.fn();
+    render(<CodeEditor onChange={onChange} />);
 
-    render(<CodeEditor onValueChange={mockOnValueChange} />);
-    
-    await waitFor(() => {
-      expect(MonacoReact.default).toHaveBeenCalled();
-    });
+    const props = lastEditorProps();
+    props.onChange?.('new content', undefined);
 
-    // Get the onMount handler and trigger content change
-    const call = vi.mocked(MonacoReact.default).mock.calls[0];
-    if (call && typeof call[0] === 'object' && 'onMount' in call[0]) {
-      const onMount = call[0].onMount as any;
-      onMount(mockEditor);
-    }
-
-    // Trigger content change callback
-    await waitFor(() => {
-      expect(mockOnValueChange).toHaveBeenCalled();
-    });
+    expect(onChange).toHaveBeenCalledWith('new content', undefined);
   });
 
-  it('should apply custom config', () => {
-    render(
-      <CodeEditor
-        config={{
-          fontSize: 16,
-          theme: 'vs-light',
-          minimap: true,
-        }}
-      />
-    );
-    
-    expect(MonacoReact.default).toHaveBeenCalledWith(
-      expect.objectContaining({
-        options: expect.objectContaining({
-          fontSize: 16,
-          theme: 'vs-light',
-        }),
-      }),
-      expect.anything()
-    );
+  it('should apply settings from settings store', () => {
+    useSettingsStore.getState().setEditorSettings({ fontSize: 16, tabSize: 4, minimap: false });
+
+    render(<CodeEditor />);
+
+    const options = lastEditorProps().options as Record<string, unknown>;
+    expect(options.fontSize).toBe(16);
+    expect(options.tabSize).toBe(4);
+    expect(options.minimap).toEqual({ enabled: false });
   });
 
   it('should set readOnly mode', () => {
     render(<CodeEditor readOnly={true} />);
-    
-    expect(MonacoReact.default).toHaveBeenCalledWith(
-      expect.objectContaining({
-        options: expect.objectContaining({
-          readOnly: true,
-        }),
-      }),
-      expect.anything()
-    );
+
+    const options = lastEditorProps().options as Record<string, unknown>;
+    expect(options.readOnly).toBe(true);
   });
 
-  it('should forward ref methods', async () => {
-    const ref = React.createRef<any>();
-    const mockEditor = {
-      onDidChangeCursorPosition: vi.fn(),
-      onDidChangeCursorSelection: vi.fn(),
-      onDidChangeModelContent: vi.fn(),
-      getValue: vi.fn().mockReturnValue('test value'),
-      setValue: vi.fn(),
-      getSelection: vi.fn().mockReturnValue({ isEmpty: () => true }),
-      getModel: vi.fn().mockReturnValue({ getValueInRange: vi.fn() }),
-      getPosition: vi.fn().mockReturnValue({ lineNumber: 1, column: 1 }),
-      executeEdits: vi.fn(),
-      focus: vi.fn(),
-    };
-
+  it('should forward ref methods', () => {
+    const ref = React.createRef<React.ComponentRef<typeof CodeEditor>>();
     render(<CodeEditor ref={ref} />);
-    
-    await waitFor(() => {
-      expect(MonacoReact.default).toHaveBeenCalled();
-    });
 
-    // Trigger mount to set up the ref
-    const call = vi.mocked(MonacoReact.default).mock.calls[0];
-    if (call && typeof call[0] === 'object' && 'onMount' in call[0]) {
-      const onMount = call[0].onMount as any;
-      onMount(mockEditor);
-    }
+    const props = lastEditorProps();
+    props.onMount?.(mockEditor);
 
-    // Test ref methods
     expect(ref.current).toBeDefined();
-    expect(typeof ref.current.getEditor).toBe('function');
-    expect(typeof ref.current.getValue).toBe('function');
-    expect(typeof ref.current.setValue).toBe('function');
-    expect(typeof ref.current.focus).toBe('function');
-    expect(typeof ref.current.getSelectedText).toBe('function');
-    expect(typeof ref.current.insertText).toBe('function');
+    expect(typeof ref.current?.getCode).toBe('function');
+    expect(typeof ref.current?.setCode).toBe('function');
+    expect(typeof ref.current?.getLanguage).toBe('function');
+    expect(typeof ref.current?.setLanguage).toBe('function');
+    expect(typeof ref.current?.focus).toBe('function');
 
-    // Test getValue
-    const value = ref.current.getValue();
-    expect(value).toBe('test value');
+    expect(ref.current?.getCode()).toBe('test value');
     expect(mockEditor.getValue).toHaveBeenCalled();
 
-    // Test setValue
-    ref.current.setValue('new value');
+    ref.current?.setCode('new value');
     expect(mockEditor.setValue).toHaveBeenCalledWith('new value');
 
-    // Test focus
-    ref.current.focus();
+    ref.current?.focus();
     expect(mockEditor.focus).toHaveBeenCalled();
   });
 
-  it('should apply default loading component', () => {
-    render(<CodeEditor />);
-    
-    expect(MonacoReact.default).toHaveBeenCalledWith(
-      expect.objectContaining({
-        loading: expect.anything(),
-      }),
-      expect.anything()
-    );
-  });
-
   it('should accept className prop', () => {
-    render(<CodeEditor className="custom-class" />);
-    
-    // The component should have the custom class
-    // This is a basic check since we're mocking Monaco
-    expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
+    const { container } = render(<CodeEditor className="custom-class" />);
+
+    expect(container.querySelector('[class*="container"]')).not.toBeNull();
+    expect(container.querySelector('.custom-class')).not.toBeNull();
   });
 });

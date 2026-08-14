@@ -1,18 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { GitService, GitStatus, GitCommit, GitBranch } from '../../services/GitService';
+import type {
+  GitStatusData,
+  GitCommitData,
+  GitBranchData,
+} from '../../types/electron';
+import useSettingsStore from '../../stores/settingsStore';
+import { IconBranch } from '../../components/common/Icons';
 import styles from './GitPanel.module.css';
 
 interface GitPanelProps {
-  repoPath: string;
+  repoPath: string | null;
 }
 
 export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
   const { t } = useTranslation();
-  const [gitService] = useState<GitService>(() => new GitService(repoPath));
-  const [status, setStatus] = useState<GitStatus | null>(null);
-  const [commits, setCommits] = useState<GitCommit[]>([]);
-  const [branches, setBranches] = useState<GitBranch[]>([]);
+  const settingsStore = useSettingsStore();
+  const [isRepo, setIsRepo] = useState<boolean | null>(null);
+  const [status, setStatus] = useState<GitStatusData | null>(null);
+  const [commits, setCommits] = useState<GitCommitData[]>([]);
+  const [branches, setBranches] = useState<GitBranchData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'changes' | 'history' | 'branches'>('changes');
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -20,17 +27,25 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
 
   // 加载 Git 状态
   const loadStatus = useCallback(async () => {
+    if (!repoPath || !window.electronAPI) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const isRepo = await gitService.isGitRepo();
-      if (!isRepo) {
+      const git = window.electronAPI.git;
+      const initResult = await git.init(repoPath);
+      if (!initResult.success || !initResult.isRepo) {
+        setIsRepo(false);
         setStatus(null);
         return;
       }
 
+      setIsRepo(true);
       const [statusData, commitsData, branchesData] = await Promise.all([
-        gitService.getStatus(),
-        gitService.getLog(10),
-        gitService.getBranches(),
+        git.getStatus(repoPath),
+        git.getLog(repoPath, 10),
+        git.getBranches(repoPath),
       ]);
 
       setStatus(statusData);
@@ -38,19 +53,22 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
       setBranches(branchesData);
     } catch (error) {
       console.error('Failed to load git status:', error);
+      setStatus(null);
     } finally {
       setIsLoading(false);
     }
-  }, [gitService]);
+  }, [repoPath]);
 
   useEffect(() => {
+    setIsLoading(true);
     loadStatus();
   }, [loadStatus]);
 
   // 暂存文件
   const handleStageFile = async (filepath: string) => {
+    if (!repoPath || !window.electronAPI) return;
     try {
-      await gitService.add(filepath);
+      await window.electronAPI.git.add(repoPath, filepath);
       await loadStatus();
     } catch (error) {
       console.error('Failed to stage file:', error);
@@ -59,8 +77,9 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
 
   // 取消暂存
   const handleUnstageFile = async (filepath: string) => {
+    if (!repoPath || !window.electronAPI) return;
     try {
-      await gitService.remove(filepath);
+      await window.electronAPI.git.remove(repoPath, filepath);
       await loadStatus();
     } catch (error) {
       console.error('Failed to unstage file:', error);
@@ -69,11 +88,15 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
 
   // 提交更改
   const handleCommit = async () => {
-    if (!commitMessage.trim() || selectedFiles.length === 0) return;
+    if (!repoPath || !commitMessage.trim() || selectedFiles.length === 0) return;
 
     try {
-      await gitService.add(selectedFiles);
-      await gitService.commit(commitMessage);
+      const git = window.electronAPI!.git!;
+      await git.add(repoPath, selectedFiles);
+      await git.commit(repoPath, commitMessage, {
+        name: settingsStore.settings.git.userName || undefined,
+        email: settingsStore.settings.git.userEmail || undefined,
+      });
       setCommitMessage('');
       setSelectedFiles([]);
       await loadStatus();
@@ -84,8 +107,9 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
 
   // 切换分支
   const handleCheckout = async (branchName: string) => {
+    if (!repoPath || !window.electronAPI) return;
     try {
-      await gitService.checkout(branchName);
+      await window.electronAPI.git.checkout(repoPath, branchName);
       await loadStatus();
     } catch (error) {
       console.error('Failed to checkout:', error);
@@ -94,8 +118,9 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
 
   // 创建新分支
   const handleCreateBranch = async (branchName: string) => {
+    if (!repoPath || !branchName.trim() || !window.electronAPI) return;
     try {
-      await gitService.createBranch(branchName);
+      await window.electronAPI.git.createBranch(repoPath, branchName.trim());
       await loadStatus();
     } catch (error) {
       console.error('Failed to create branch:', error);
@@ -106,7 +131,15 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
     return <div className={styles.loading}>{t('git.loading')}</div>;
   }
 
-  if (!status) {
+  if (!repoPath) {
+    return (
+      <div className={styles.notRepo}>
+        <p>{t('git.noWorkspace')}</p>
+      </div>
+    );
+  }
+
+  if (!isRepo) {
     return (
       <div className={styles.notRepo}>
         <p>{t('git.notRepo')}</p>
@@ -118,10 +151,8 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
     <div className={styles.gitPanel}>
       {/* 分支信息 */}
       <div className={styles.branchBar}>
-        <span className={styles.branchIcon}>🌿</span>
-        <span className={styles.branchName}>{status.branch}</span>
-        {status.ahead > 0 && <span className={styles.ahead}>↑{status.ahead}</span>}
-        {status.behind > 0 && <span className={styles.behind}>↓{status.behind}</span>}
+        <span className={styles.branchIcon}><IconBranch /></span>
+        <span className={styles.branchName}>{status?.branch || 'HEAD'}</span>
       </div>
 
       {/* 标签页 */}
@@ -130,7 +161,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
           className={`${styles.tab} ${activeTab === 'changes' ? styles.active : ''}`}
           onClick={() => setActiveTab('changes')}
         >
-          {t('git.changes')} ({status.files.length})
+          {t('git.changes')} ({status?.files.length ?? 0})
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'history' ? styles.active : ''}`}
@@ -150,7 +181,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
       {activeTab === 'changes' && (
         <div className={styles.changesTab}>
           <div className={styles.fileList}>
-            {status.files.map((file) => (
+            {(status?.files ?? []).map((file) => (
               <div key={file.path} className={styles.fileItem}>
                 <input
                   type="checkbox"
@@ -224,7 +255,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repoPath }) => {
               className={`${styles.branchItem} ${branch.current ? styles.current : ''}`}
               onClick={() => !branch.current && handleCheckout(branch.name)}
             >
-              <span className={styles.branchIcon}>{branch.current ? '✓' : '🌿'}</span>
+              <span className={styles.branchIcon}>{branch.current ? '✓' : <IconBranch />}</span>
               <span className={styles.branchName}>{branch.name}</span>
               {branch.current && <span className={styles.currentLabel}>{t('git.current')}</span>}
             </div>

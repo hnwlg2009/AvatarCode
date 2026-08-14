@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useSettingsStore } from '../../../stores/settingsStore';
 import styles from './GitSettings.module.css';
 
 export interface GitConfig {
@@ -7,38 +9,20 @@ export interface GitConfig {
 }
 
 interface GitSettingsProps {
-  onSave?: (config: GitConfig) => void;
+  onSave?: (config: { userName: string; userEmail: string }) => void;
 }
 
 export const GitSettings: React.FC<GitSettingsProps> = ({ onSave }) => {
-  const [config, setConfig] = useState<GitConfig>({
-    userName: '',
-    userEmail: '',
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  const { t } = useTranslation();
+  const { settings, setGitSettings } = useSettingsStore();
+  const [userName, setUserName] = useState(settings.git.userName);
+  const [userEmail, setUserEmail] = useState(settings.git.userEmail);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  useEffect(() => {
-    loadGitConfig();
-  }, []);
-
-  const loadGitConfig = async () => {
-    try {
-      const userName = (await (window as any).electron?.git.getConfig('user.name')) || '';
-      const userEmail = (await (window as any).electron?.git.getConfig('user.email')) || '';
-
-      setConfig({ userName, userEmail });
-    } catch (error) {
-      console.error('Failed to load git config:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSave = async () => {
-    if (!config.userName.trim() || !config.userEmail.trim()) {
-      setMessage({ type: 'error', text: 'Please fill in all fields' });
+    if (!userName.trim() || !userEmail.trim()) {
+      setMessage({ type: 'error', text: t('settings.gitSettings.fillAll') });
       return;
     }
 
@@ -46,50 +30,45 @@ export const GitSettings: React.FC<GitSettingsProps> = ({ onSave }) => {
     setMessage(null);
 
     try {
-      await (window as any).electron?.git.setConfig('user.name', config.userName);
-      await (window as any).electron?.git.setConfig('user.email', config.userEmail);
-
-      setMessage({ type: 'success', text: 'Git configuration saved successfully!' });
-      onSave?.(config);
+      setGitSettings({ userName: userName.trim(), userEmail: userEmail.trim() });
+      setMessage({ type: 'success', text: t('settings.gitSettings.saved') });
+      onSave?.({ userName: userName.trim(), userEmail: userEmail.trim() });
+      setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to save configuration' });
+      setMessage({ type: 'error', text: `${t('settings.gitSettings.saveFailed')}: ${error.message}` });
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isLoading) {
-    return <div className={styles.loading}>Loading Git configuration...</div>;
-  }
-
   return (
     <div className={styles.settings}>
       <div className={styles.header}>
-        <h3>Git Configuration</h3>
-        <p className={styles.description}>Configure your Git identity for commits</p>
+        <h3>{t('settings.gitSettings.title')}</h3>
+        <p className={styles.description}>{t('settings.gitSettings.description')}</p>
       </div>
 
       <div className={styles.form}>
         <div className={styles.formGroup}>
-          <label htmlFor="userName">User Name</label>
+          <label htmlFor="userName">{t('settings.gitSettings.userName')}</label>
           <input
             id="userName"
             type="text"
-            value={config.userName}
-            onChange={(e) => setConfig({ ...config, userName: e.target.value })}
-            placeholder="Your Name"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            placeholder={t('settings.gitSettings.userNamePlaceholder')}
             className={styles.input}
           />
         </div>
 
         <div className={styles.formGroup}>
-          <label htmlFor="userEmail">User Email</label>
+          <label htmlFor="userEmail">{t('settings.gitSettings.userEmail')}</label>
           <input
             id="userEmail"
             type="email"
-            value={config.userEmail}
-            onChange={(e) => setConfig({ ...config, userEmail: e.target.value })}
-            placeholder="your@email.com"
+            value={userEmail}
+            onChange={(e) => setUserEmail(e.target.value)}
+            placeholder={t('settings.gitSettings.userEmailPlaceholder')}
             className={styles.input}
           />
         </div>
@@ -99,16 +78,16 @@ export const GitSettings: React.FC<GitSettingsProps> = ({ onSave }) => {
         )}
 
         <button className={styles.saveButton} onClick={handleSave} disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save Configuration'}
+          {isSaving ? t('settings.gitSettings.saving') : t('settings.gitSettings.save')}
         </button>
       </div>
 
       <div className={styles.tips}>
-        <h4>Tips:</h4>
+        <h4>{t('settings.gitSettings.tipsTitle')}</h4>
         <ul>
-          <li>Your name and email will be attached to each commit</li>
-          <li>Use the same email as your GitHub account</li>
-          <li>You can change these settings at any time</li>
+          <li>{t('settings.gitSettings.tip1')}</li>
+          <li>{t('settings.gitSettings.tip2')}</li>
+          <li>{t('settings.gitSettings.tip3')}</li>
         </ul>
       </div>
     </div>

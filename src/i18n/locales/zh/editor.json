@@ -1,0 +1,41 @@
+{
+  "title": "代码编辑器",
+  "readOnly": "只读",
+  "modified": "已修改",
+  "saved": "已保存",
+  "lines": "行",
+  "characters": "字符",
+  "words": "单词",
+  "font": "字体",
+  "fontSize": "字体大小",
+  "fontFamily": "字体",
+  "indentation": "缩进",
+  "tabSize": "制表符大小",
+  "display": "显示",
+  "wordWrap": "自动换行",
+  "minimap": {
+    "enabled": "显示缩略图",
+    "disabled": "隐藏缩略图"
+  },
+  "lineNumbers": "显示行号",
+  "scrollBeyondLastLine": "滚动超过最后一行",
+  "autoSave": "自动保存",
+  "enableAutoSave": "启用自动保存",
+  "delay": "延迟",
+  "statusBar": {
+    "line": "行",
+    "column": "列",
+    "selected": "已选择",
+    "indentation": "缩进",
+    "encoding": "编码",
+    "language": "语言",
+    "tabSize": "制表符大小"
+  },
+  "actions": {
+    "format": "格式化文档",
+    "formatSelection": "格式化选中内容",
+    "toggleWordWrap": "切换自动换行",
+    "toggleMinimap": "切换缩略图",
+    "toggleLineNumbers": "切换行号"
+  }
+}

@@ -1,42 +1,37 @@
-import { LLMProvider, LLMConfig } from './types';
-import { OpenAIProvider, OpenAIConfig } from './OpenAIProvider';
-import { AnthropicProvider, AnthropicConfig } from './AnthropicProvider';
+import { LLMProvider } from './types';
+import type { LLMConfig } from './types';
+import { IPCLLMProvider } from './IPCLLMProvider';
+import { MockProvider } from './MockProvider';
 
 export class LLMFactory {
   private static providers: Map<string, LLMProvider> = new Map();
 
   static createProvider(config: LLMConfig): LLMProvider {
+    if (config.provider === 'mock') {
+      return this.createMockProvider();
+    }
+
     const cacheKey = `${config.provider}-${config.model || 'default'}`;
 
     if (this.providers.has(cacheKey)) {
       return this.providers.get(cacheKey)!;
     }
 
-    let provider: LLMProvider;
-
-    switch (config.provider) {
-      case 'openai': {
-        const openAIConfig = config as OpenAIConfig;
-        if (!openAIConfig.apiKey) {
-          throw new Error('OpenAI API Key 未配置');
-        }
-        provider = new OpenAIProvider(openAIConfig);
-        break;
-      }
-      case 'anthropic': {
-        const anthropicConfig = config as AnthropicConfig;
-        if (!anthropicConfig.apiKey) {
-          throw new Error('Anthropic API Key 未配置');
-        }
-        provider = new AnthropicProvider(anthropicConfig);
-        break;
-      }
-      default:
-        throw new Error(`不支持的 LLM 提供商：${config.provider}`);
-    }
+    const provider = new IPCLLMProvider({
+      provider: config.provider,
+      apiKey: config.apiKey,
+      model: config.model,
+      baseUrl: config.baseUrl,
+      timeout: config.timeout,
+    });
 
     this.providers.set(cacheKey, provider);
     return provider;
+  }
+
+  static createMockProvider(): LLMProvider {
+    // Mock 不缓存，避免状态共享
+    return new MockProvider();
   }
 
   static getProvider(providerId: string): LLMProvider | undefined {
@@ -52,5 +47,4 @@ export class LLMFactory {
   }
 }
 
-export type { LLMProvider, LLMConfig };
-export * from './types';
+export default LLMFactory;

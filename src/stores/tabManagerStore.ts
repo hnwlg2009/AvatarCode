@@ -9,6 +9,7 @@ export interface ITab {
   content: string;
   isDirty: boolean;
   isLoading: boolean;
+  error?: string;
   config: IEditorConfig;
 }
 
@@ -21,10 +22,14 @@ export interface TabManagerState {
   updateTabContent: (tabId: string, content: string) => void;
   updateTabConfig: (tabId: string, config: Partial<IEditorConfig>) => void;
   markAsSaved: (tabId: string) => void;
+  setTabError: (tabId: string, error?: string) => void;
+  setTabLoading: (tabId: string, isLoading: boolean) => void;
   getActiveTab: () => ITab | null;
   getTabByPath: (path: string) => ITab | null;
   reset: () => void;
 }
+
+let tabIdCounter = 0;
 
 export const useTabManagerStore = create<TabManagerState>((set, get) => ({
   tabs: [],
@@ -36,11 +41,12 @@ export const useTabManagerStore = create<TabManagerState>((set, get) => ({
       set({ activeTabId: existingTab.id });
       return existingTab.id;
     }
+    const id = tab.id || `tab-${Date.now()}-${tabIdCounter++}`;
     set((state) => ({
-      tabs: [...state.tabs, tab],
-      activeTabId: tab.id,
+      tabs: [...state.tabs, { ...tab, id }],
+      activeTabId: id,
     }));
-    return tab.id;
+    return id;
   },
 
   closeTab: (tabId: string) => {
@@ -80,6 +86,18 @@ export const useTabManagerStore = create<TabManagerState>((set, get) => ({
   markAsSaved: (tabId: string) => {
     set((state) => ({
       tabs: state.tabs.map((tab) => (tab.id === tabId ? { ...tab, isDirty: false } : tab)),
+    }));
+  },
+
+  setTabError: (tabId: string, error?: string) => {
+    set((state) => ({
+      tabs: state.tabs.map((tab) => (tab.id === tabId ? { ...tab, error } : tab)),
+    }));
+  },
+
+  setTabLoading: (tabId: string, isLoading: boolean) => {
+    set((state) => ({
+      tabs: state.tabs.map((tab) => (tab.id === tabId ? { ...tab, isLoading } : tab)),
     }));
   },
 

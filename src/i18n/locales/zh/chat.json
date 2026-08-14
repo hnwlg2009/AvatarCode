@@ -1,0 +1,16 @@
+{
+  "title": "AI 助手",
+  "clearChat": "清空对话",
+  "greeting": "你好！我是你的 AI 编程助手。",
+  "helpTitle": "我可以帮你：",
+  "helpExplain": "解释代码",
+  "helpOptimize": "优化代码",
+  "helpAnswer": "回答编程问题",
+  "helpGenerate": "生成代码片段",
+  "userRole": "你",
+  "aiRole": "AI",
+  "inputPlaceholder": "输入你的消息...",
+  "send": "发送",
+  "stop": "停止",
+  "loading": "思考中..."
+}

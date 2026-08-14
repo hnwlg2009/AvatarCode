@@ -11,9 +11,9 @@ export const EditorSettings: React.FC = () => {
   return (
     <div className={styles.editorSettings}>
       <div className={styles.section}>
-        <h3>Font</h3>
+        <h3>{t('editor.font')}</h3>
         <div className={styles.formGroup}>
-          <label>Font Size: {editor.fontSize}px</label>
+          <label>{t('editor.fontSize')}: {editor.fontSize}px</label>
           <input
             type="range"
             min="10"
@@ -25,24 +25,24 @@ export const EditorSettings: React.FC = () => {
         </div>
 
         <div className={styles.formGroup}>
-          <label>Font Family</label>
+          <label>{t('editor.fontFamily')}</label>
           <select
             value={editor.fontFamily}
             onChange={(e) => setEditorSettings({ fontFamily: e.target.value })}
             className={styles.select}
           >
-            <option value="'Monaco', 'Courier New', monospace">Monaco</option>
-            <option value="'Consolas', 'Courier New', monospace">Consolas</option>
-            <option value="'Fira Code', monospace">Fira Code</option>
-            <option value="'Source Code Pro', monospace">Source Code Pro</option>
+            <option value="'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace">JetBrains Mono</option>
+            <option value="'Cascadia Code', Consolas, monospace">Cascadia Code</option>
+            <option value="'Fira Code', Consolas, monospace">Fira Code</option>
+            <option value="'Consolas', Menlo, monospace">Consolas</option>
           </select>
         </div>
       </div>
 
       <div className={styles.section}>
-        <h3>Indentation</h3>
+        <h3>{t('editor.indentation')}</h3>
         <div className={styles.formGroup}>
-          <label>Tab Size</label>
+          <label>{t('editor.tabSize')}</label>
           <select
             value={editor.tabSize}
             onChange={(e) => setEditorSettings({ tabSize: Number(e.target.value) })}
@@ -56,14 +56,14 @@ export const EditorSettings: React.FC = () => {
       </div>
 
       <div className={styles.section}>
-        <h3>Display</h3>
+        <h3>{t('editor.display')}</h3>
         <label className={styles.checkbox}>
           <input
             type="checkbox"
             checked={editor.wordWrap}
             onChange={(e) => setEditorSettings({ wordWrap: e.target.checked })}
           />
-          <span>Word Wrap</span>
+          <span>{t('editor.wordWrap')}</span>
         </label>
 
         <label className={styles.checkbox}>
@@ -72,7 +72,7 @@ export const EditorSettings: React.FC = () => {
             checked={editor.minimap}
             onChange={(e) => setEditorSettings({ minimap: e.target.checked })}
           />
-          <span>Minimap</span>
+          <span>{t('editor.minimap')}</span>
         </label>
 
         <label className={styles.checkbox}>
@@ -81,31 +81,31 @@ export const EditorSettings: React.FC = () => {
             checked={editor.lineNumbers}
             onChange={(e) => setEditorSettings({ lineNumbers: e.target.checked })}
           />
-          <span>Show Line Numbers</span>
+          <span>{t('editor.lineNumbers')}</span>
         </label>
 
         <label className={styles.checkbox}>
           <input
             type="checkbox"
           />
-          <span>Scroll Beyond Last Line</span>
+          <span>{t('editor.scrollBeyondLastLine')}</span>
         </label>
       </div>
 
       <div className={styles.section}>
-        <h3>Auto Save</h3>
+        <h3>{t('editor.autoSave')}</h3>
         <label className={styles.checkbox}>
           <input
             type="checkbox"
             checked={editor.autoSave}
             onChange={(e) => setEditorSettings({ autoSave: e.target.checked })}
           />
-          <span>Enable Auto Save</span>
+          <span>{t('editor.enableAutoSave')}</span>
         </label>
 
         {editor.autoSave && (
           <div className={styles.formGroup}>
-            <label>Delay: {editor.autoSaveDelay}ms</label>
+            <label>{t('editor.delay')}: {editor.autoSaveDelay}ms</label>
             <input
               type="range"
               min="500"

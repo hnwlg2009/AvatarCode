@@ -1,90 +1,51 @@
-import { Tool, ToolResult } from '../types/agent.types';
+import { Tool, ToolExecutionResult } from '../types/agent.types';
 import fileSystemService from '../../../services/FileSystemService';
 
-export class FileTool implements Tool {
-  name = 'file_operation';
-  description = '执行文件操作（读、写、创建、删除、移动）';
-  parameters = {
-    type: 'object' as const,
+export const fileTool: Tool = {
+  name: 'read_file',
+  description: 'Read the content of a file',
+  parameters: {
+    type: 'object',
     properties: {
-      action: {
-        type: 'string',
-        description: '操作类型：read/write/create/delete/move',
-        enum: ['read', 'write', 'create', 'delete', 'move'],
-      },
-      path: {
-        type: 'string',
-        description: '文件路径',
-      },
-      content: {
-        type: 'string',
-        description: '文件内容（写/创建操作需要）',
-      },
-      newPath: {
-        type: 'string',
-        description: '新路径（移动操作需要）',
-      },
+      path: { type: 'string', description: 'File path to read' },
     },
-    required: ['action', 'path'] as string[],
-  };
-
-  async execute(params: Record<string, any>): Promise<ToolResult> {
+    required: ['path'],
+  },
+  async execute(args: Record<string, any>): Promise<ToolExecutionResult> {
     try {
-      const { action, path, content, newPath } = params;
-
-      switch (action) {
-        case 'read': {
-          const data = await fileSystemService.readFile(path);
-          return {
-            success: true,
-            data: { content: data },
-            message: `成功读取 ${path}`,
-          };
-        }
-
-        case 'write': {
-          await fileSystemService.writeFile(path, content);
-          return {
-            success: true,
-            message: `成功写入 ${path}`,
-          };
-        }
-
-        case 'create': {
-          await fileSystemService.createFile(path, content || '');
-          return {
-            success: true,
-            message: `成功创建 ${path}`,
-          };
-        }
-
-        case 'delete': {
-          await fileSystemService.delete(path);
-          return {
-            success: true,
-            message: `成功删除 ${path}`,
-          };
-        }
-
-        case 'move': {
-          await fileSystemService.rename(path, newPath);
-          return {
-            success: true,
-            message: `成功移动 ${path} -> ${newPath}`,
-          };
-        }
-
-        default:
-          return {
-            success: false,
-            error: `未知操作：${action}`,
-          };
-      }
-    } catch (error: any) {
+      const content = await fileSystemService.readFile(args.path as string);
+      return { success: true, result: content };
+    } catch (error) {
       return {
         success: false,
-        error: error.message,
+        result: null,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
-  }
-}
+  },
+};
+
+export const writeFileTool: Tool = {
+  name: 'write_file',
+  description: 'Write content to a file',
+  parameters: {
+    type: 'object',
+    properties: {
+      path: { type: 'string', description: 'File path to write' },
+      content: { type: 'string', description: 'Content to write' },
+    },
+    required: ['path', 'content'],
+  },
+  async execute(args: Record<string, any>): Promise<ToolExecutionResult> {
+    try {
+      await fileSystemService.writeFile(args.path as string, args.content as string);
+      return { success: true, result: `File written: ${args.path}` };
+    } catch (error) {
+      return {
+        success: false,
+        result: null,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  },
+};

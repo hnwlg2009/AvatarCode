@@ -1,0 +1,13 @@
+{
+  "loading": "加载中...",
+  "notRepo": "不是 Git 仓库",
+  "noWorkspace": "未打开工作区",
+  "changes": "更改",
+  "history": "历史",
+  "branches": "分支",
+  "current": "当前",
+  "stage": "暂存",
+  "unstage": "取消暂存",
+  "commit": "提交",
+  "commitPlaceholder": "提交信息"
+}

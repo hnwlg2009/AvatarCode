@@ -1,5 +1,3 @@
-import { ipcRenderer } from 'electron';
-
 export interface FileEntry {
   name: string;
   path: string;
@@ -37,36 +35,43 @@ class FileSystemService {
   private fileCache = new Map<string, { content: string; timestamp: number }>();
   private readonly CACHE_TTL = 5000;
 
+  private get api(): NonNullable<Window['electronAPI']> {
+    if (!window.electronAPI) {
+      throw new Error('electronAPI is not available');
+    }
+    return window.electronAPI;
+  }
+
   async readFile(path: string): Promise<string> {
     const cached = this.fileCache.get(path);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
       return cached.content;
     }
 
-    const content = await ipcRenderer.invoke('file:read', path);
+    const content = await this.api.file.read(path);
     this.fileCache.set(path, { content, timestamp: Date.now() });
     return content;
   }
 
   async readBinaryFile(path: string): Promise<Uint8Array> {
-    return await ipcRenderer.invoke('file:readBinary', path);
+    return await this.api.file.readBinary(path);
   }
 
   async writeFile(path: string, content: string): Promise<void> {
-    await ipcRenderer.invoke('file:write', path, content);
+    await this.api.file.write(path, content);
     this.fileCache.delete(path);
   }
 
   async writeBinaryFile(path: string, data: Uint8Array): Promise<void> {
-    await ipcRenderer.invoke('file:writeBinary', path, data);
+    await this.api.file.writeBinary(path, data);
   }
 
   async readdir(path: string): Promise<FileEntry[]> {
-    return await ipcRenderer.invoke('file:readdir', path);
+    return await this.api.file.readdir(path);
   }
 
   async stat(path: string): Promise<FileStat> {
-    return await ipcRenderer.invoke('file:stat', path);
+    return await this.api.file.stat(path);
   }
 
   async exists(path: string): Promise<boolean> {
@@ -79,20 +84,20 @@ class FileSystemService {
   }
 
   async createFile(path: string, content = ''): Promise<void> {
-    await ipcRenderer.invoke('file:create', path, content);
+    await this.api.file.create(path, content);
   }
 
   async createDirectory(path: string): Promise<void> {
-    await ipcRenderer.invoke('file:createDirectory', path);
+    await this.api.file.createDirectory(path);
   }
 
   async delete(path: string, recursive = false): Promise<void> {
-    await ipcRenderer.invoke('file:delete', path, recursive);
+    await this.api.file.delete(path, recursive);
     this.fileCache.delete(path);
   }
 
   async rename(oldPath: string, newPath: string): Promise<void> {
-    await ipcRenderer.invoke('file:rename', oldPath, newPath);
+    await this.api.file.rename(oldPath, newPath);
     const cached = this.fileCache.get(oldPath);
     if (cached) {
       this.fileCache.delete(oldPath);
@@ -101,19 +106,38 @@ class FileSystemService {
   }
 
   async copy(sourcePath: string, destPath: string): Promise<void> {
-    await ipcRenderer.invoke('file:copy', sourcePath, destPath);
+    await this.api.file.copy(sourcePath, destPath);
   }
 
   async searchFiles(
     pattern: string,
     options?: SearchOptions
   ): Promise<FileInfo[]> {
-    return await ipcRenderer.invoke('file:search', pattern, options);
+    return await this.api.file.search(pattern, options);
+  }
+
+  async searchCode(
+    query: string,
+    dirPath?: string,
+    maxResults?: number
+  ): Promise<{ path: string; line: number; snippet: string }[]> {
+    return await this.api.file.searchCode(query, dirPath, maxResults);
   }
 
   async openFileDialog(): Promise<string | null> {
-    const { filePaths } = await ipcRenderer.invoke('dialog:openFile');
-    return filePaths[0] || null;
+    try {
+      return await this.api.openFileDialog();
+    } catch {
+      return null;
+    }
+  }
+
+  async saveFileDialog(): Promise<string | null> {
+    try {
+      return await this.api.saveFileDialog();
+    } catch {
+      return null;
+    }
   }
 
   getFileLanguage(filePath: string): string {

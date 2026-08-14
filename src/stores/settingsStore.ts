@@ -26,21 +26,34 @@ export interface GitSettings {
 }
 
 export interface WorkspaceSettingsRaw {
+  general?: Partial<GeneralSettings>;
   editor?: Partial<EditorSettings>;
   appearance?: Partial<AppearanceSettings>;
   git?: Partial<GitSettings>;
 }
 
+export interface GeneralSettings {
+  language: string;
+  autoSave: boolean;
+  autoSaveDelay: number;
+}
+
 export interface Settings {
+  general: GeneralSettings;
   editor: EditorSettings;
   appearance: AppearanceSettings;
   git: GitSettings;
 }
 
 const defaultSettings: Settings = {
+  general: {
+    language: 'zh',
+    autoSave: false,
+    autoSaveDelay: 1000,
+  },
   editor: {
     fontSize: 14,
-    fontFamily: 'Consolas, "Courier New", monospace',
+    fontFamily: '"JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, monospace',
     tabSize: 2,
     wordWrap: false,
     minimap: true,
@@ -67,10 +80,12 @@ interface SettingsState {
   isLoading: boolean;
 
   setSettings: (settings: Partial<Settings>) => void;
+  setGeneralSettings: (settings: Partial<GeneralSettings>) => void;
   setEditorSettings: (settings: Partial<EditorSettings>) => void;
   setAppearanceSettings: (settings: Partial<AppearanceSettings>) => void;
   setGitSettings: (settings: Partial<GitSettings>) => void;
   setWorkspacePath: (path: string | null) => void;
+  setWorkspaceSettings: (settings: WorkspaceSettingsRaw) => void;
   loadWorkspaceSettings: () => Promise<void>;
   saveWorkspaceSettings: () => Promise<void>;
   getEffectiveSettings: () => Settings;
@@ -113,6 +128,10 @@ async function writeWorkspaceConfig(
 
 function mergeSettings(base: Settings, override: WorkspaceSettingsRaw): Settings {
   return {
+    general: {
+      ...base.general,
+      ...override.general,
+    },
     editor: {
       ...base.editor,
       ...override.editor,
@@ -143,6 +162,15 @@ export const useSettingsStore = create<SettingsState>()(
       setSettings: (newSettings) => {
         set((state) => ({
           settings: { ...state.settings, ...newSettings },
+        }));
+      },
+
+      setGeneralSettings: (generalSettings) => {
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            general: { ...state.settings.general, ...generalSettings },
+          },
         }));
       },
 
@@ -178,6 +206,10 @@ export const useSettingsStore = create<SettingsState>()(
         if (workspacePath) {
           get().loadWorkspaceSettings();
         }
+      },
+
+      setWorkspaceSettings: (workspaceSettings) => {
+        set({ workspaceSettings });
       },
 
       loadWorkspaceSettings: async () => {

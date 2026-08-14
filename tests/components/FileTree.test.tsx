@@ -1,9 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import i18n from '../../src/i18n';
 import { FileTree, IFileNode } from '../../src/components/common/FileTree';
 
 describe('FileTree', () => {
+  beforeEach(() => {
+    i18n.changeLanguage('en');
+  });
+
   const mockFiles: IFileNode[] = [
     {
       name: 'src',
@@ -103,7 +108,7 @@ describe('FileTree', () => {
       />
     );
 
-    const tree = screen.getByText('src').closest('.fileTree');
+    const tree = screen.getByTestId('file-tree');
     expect(tree).toHaveClass('custom-class');
   });
 
@@ -153,7 +158,7 @@ describe('FileTree', () => {
     fireEvent.click(screen.getByText('level2'));
 
     const fileElement = screen.getByText('file.ts');
-    const content = fileElement.closest('.nodeContent');
-    expect(content).toHaveStyle('padding-left: 32px'); // 16 * depth + 8
+    const content = fileElement.closest('[style]');
+    expect(content).toHaveStyle('padding-left: 40px'); // depth 2 => 2 * 16 + 8
   });
 });

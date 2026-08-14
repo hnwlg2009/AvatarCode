@@ -60,8 +60,12 @@ describe('FileWatcherService', () => {
       expect(chokidar.watch).toHaveBeenCalledWith(
         '/test',
         expect.objectContaining({
-          ignorePatterns: expect.arrayContaining([expect.any(RegExp)]),
+          ignored: expect.arrayContaining([expect.any(RegExp)]),
           ignoreInitial: false,
+          awaitWriteFinish: {
+            stabilityThreshold: 200,
+            pollInterval: 50,
+          },
         })
       );
     });

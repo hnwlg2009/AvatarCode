@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { CodeEditor, CodeEditorRef } from '../editor';
 import { useTabManagerStore } from '../../stores/tabManagerStore';
 import fileSystemService from '../../services/FileSystemService';
+import { openFileInWorkspace, saveActiveTab, createUntitledTab } from '../../utils/workspace';
 import { TabBar } from './TabBar';
 import styles from './Workspace.module.css';
 
@@ -13,12 +14,9 @@ export const Workspace: React.FC = () => {
   const {
     tabs,
     activeTabId,
-    addTab,
     closeTab,
     activateTab,
     updateTabContent,
-    markAsSaved,
-    updateTabConfig,
     getActiveTab,
   } = useTabManagerStore();
 
@@ -30,38 +28,16 @@ export const Workspace: React.FC = () => {
     if (!filePath) return;
 
     try {
-      const content = await fileSystemService.readFile(filePath);
-      if (!content) return;
-      const language = fileSystemService.getFileLanguage(filePath);
-      const fileName = filePath.split('/').pop() || 'Untitled';
-
-      addTab({
-        path: filePath,
-        name: fileName,
-        language,
-        id: filePath,
-        content,
-        isDirty: false,
-        isLoading: false,
-        config: { theme: 'vs-dark' as const },
-      });
+      await openFileInWorkspace(filePath);
     } catch (error) {
       console.error('Failed to open file:', error);
     }
-  }, [addTab]);
+  }, []);
 
   // 保存文件
   const handleSaveFile = useCallback(async () => {
-    if (!activeTab) return;
-
-    try {
-      await fileSystemService.writeFile(activeTab.path, activeTab.content);
-      markAsSaved(activeTab.id);
-      console.log('File saved:', activeTab.path);
-    } catch (error) {
-      console.error('Failed to save file:', error);
-    }
-  }, [activeTab, markAsSaved]);
+    await saveActiveTab();
+  }, []);
 
   // 处理内容变化
   const handleValueChange = useCallback(
@@ -102,6 +78,12 @@ export const Workspace: React.FC = () => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
         e.preventDefault();
         handleOpenFile();
+      }
+
+      // Ctrl/Cmd + N: New file
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        createUntitledTab();
       }
     };
 

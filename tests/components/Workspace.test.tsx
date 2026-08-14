@@ -1,90 +1,104 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import i18n from '../../src/i18n';
 import { Workspace } from '../../src/components/common/Workspace';
-import { useEditorStore } from '../../src/stores/editorStore';
+import { useTabManagerStore } from '../../src/stores/tabManagerStore';
 
-// Mock CodeEditor
-vi.mock('../../src/components/editor/CodeEditor', () => ({
-  CodeEditor: vi.fn(() => <div data-testid="code-editor">Mock Editor</div>),
+const { MockCodeEditor } = vi.hoisted(() => ({
+  MockCodeEditor: vi.fn(() => null),
 }));
+
+vi.mock('../../src/components/editor', () => ({
+  CodeEditor: (props: unknown) => MockCodeEditor(props),
+}));
+
+function addTab(path: string, language = 'typescript', content = '') {
+  return useTabManagerStore.getState().addTab({
+    path,
+    name: path.split('/').pop() || path,
+    language,
+    content,
+    isDirty: false,
+    isLoading: false,
+    config: { theme: 'vs-dark' } as const,
+  });
+}
 
 describe('Workspace', () => {
   beforeEach(() => {
-    // Reset store before each test
-    useEditorStore.getState().reset();
+    i18n.changeLanguage('en');
+    useTabManagerStore.getState().reset();
+    MockCodeEditor.mockClear();
   });
 
   it('should render empty state when no file is open', () => {
     render(<Workspace />);
-    
-    expect(screen.getByText('打开文件开始编辑')).toBeInTheDocument();
-    expect(screen.getByText(/使用 Ctrl\+O 打开文件/)).toBeInTheDocument();
+
+    expect(screen.getByText('Welcome to AvatarCode')).toBeInTheDocument();
+    expect(screen.getByText('Open a file to start editing')).toBeInTheDocument();
+    expect(MockCodeEditor).not.toHaveBeenCalled();
   });
 
   it('should render editor when file is open', () => {
-    // Set a file in the store
-    const store = useEditorStore.getState();
-    store.setCurrentFile('/test.ts');
-    store.setFileContent('console.log("hello");');
-    store.setLanguage('typescript');
+    addTab('/test.ts', 'typescript', 'console.log("hello");');
 
     render(<Workspace />);
-    
-    expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+
+    expect(MockCodeEditor).toHaveBeenCalled();
   });
 
-  it('should display file name in tab', () => {
-    const store = useEditorStore.getState();
-    store.setCurrentFile('src/App.tsx');
+  it('should display file path in tab', () => {
+    addTab('src/App.tsx');
 
     render(<Workspace />);
-    
+
     expect(screen.getByText('src/App.tsx')).toBeInTheDocument();
   });
 
-  it('should pass language to CodeEditor', () => {
-    const store = useEditorStore.getState();
-    store.setCurrentFile('script.py');
-    store.setLanguage('python');
+  it('should pass language and content to CodeEditor', () => {
+    addTab('script.py', 'python', 'print(1)');
 
     render(<Workspace />);
-    
-    // The mocked CodeEditor should be rendered
-    expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+
+    expect(MockCodeEditor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        language: 'python',
+        value: 'print(1)',
+      })
+    );
   });
 
-  it('should handle file content changes', () => {
-    const store = useEditorStore.getState();
-    store.setCurrentFile('test.ts');
-    store.setFileContent('initial content');
+  it('should handle file content changes via store', () => {
+    const tabId = addTab('test.ts', 'typescript', 'initial content');
 
     render(<Workspace />);
-    
-    // Editor should be rendered with the file
-    expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+
+    act(() => {
+      useTabManagerStore.getState().updateTabContent(tabId, 'changed content');
+    });
+    expect(MockCodeEditor).toHaveBeenLastCalledWith(
+      expect.objectContaining({ value: 'changed content' })
+    );
   });
 
   it('should have correct CSS classes', () => {
     const { container } = render(<Workspace />);
-    
-    const workspace = container.querySelector('.workspace');
-    expect(workspace).toBeInTheDocument();
+
+    expect(container.querySelector('[class*="workspace"]')).not.toBeNull();
   });
 
   it('should switch from empty to editor state', () => {
     const { rerender } = render(<Workspace />);
-    
-    expect(screen.getByText('打开文件开始编辑')).toBeInTheDocument();
-    expect(screen.queryByTestId('code-editor')).not.toBeInTheDocument();
 
-    // Open a file
-    const store = useEditorStore.getState();
-    store.setCurrentFile('newfile.ts');
+    expect(screen.getByText('Welcome to AvatarCode')).toBeInTheDocument();
+    expect(MockCodeEditor).not.toHaveBeenCalled();
+
+    addTab('newfile.ts');
 
     rerender(<Workspace />);
-    
-    expect(screen.queryByText('打开文件开始编辑')).not.toBeInTheDocument();
-    expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+
+    expect(screen.queryByText('Welcome to AvatarCode')).not.toBeInTheDocument();
+    expect(MockCodeEditor).toHaveBeenCalled();
   });
 });

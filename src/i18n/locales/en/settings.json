@@ -1,0 +1,102 @@
+{
+  "title": "Settings",
+  "nav": {
+    "general": "General",
+    "editor": "Editor",
+    "git": "Git",
+    "workspace": "Workspace",
+    "api": "API",
+    "appearance": "Appearance"
+  },
+  "general": {
+    "language": "Language",
+    "languageDescription": "Select the display language",
+    "autoSave": "Auto Save",
+    "autoSaveDescription": "Automatically save files after editing",
+    "autoSaveDelay": "Auto Save Delay",
+    "autoSaveDelayDescription": "Delay in milliseconds before auto saving"
+  },
+  "editor": {
+    "fontSize": "Font Size",
+    "fontSizeDescription": "Set the editor font size",
+    "fontFamily": "Font Family",
+    "fontFamilyDescription": "Set the editor font family",
+    "tabSize": "Tab Size",
+    "tabSizeDescription": "Set the number of spaces for a tab",
+    "wordWrap": "Word Wrap",
+    "wordWrapDescription": "Wrap long lines at the editor width",
+    "minimap": "Minimap",
+    "minimapDescription": "Show the minimap on the right side",
+    "lineNumbers": "Line Numbers",
+    "lineNumbersDescription": "Show line numbers in the editor",
+    "bracketPairColorization": "Bracket Pair Colorization",
+    "bracketPairColorizationDescription": "Colorize matching brackets"
+  },
+  "git": {
+    "enabled": "Enable Git",
+    "enabledDescription": "Enable Git integration",
+    "autoFetch": "Auto Fetch",
+    "autoFetchDescription": "Automatically fetch from remote repositories",
+    "confirmSync": "Confirm Sync",
+    "confirmSyncDescription": "Ask for confirmation before syncing"
+  },
+  "workspace": {
+    "title": "Workspace Settings",
+    "emptyTitle": "No workspace opened",
+    "emptyHint": "Open a workspace first to configure workspace-specific settings",
+    "editor": "Editor Settings",
+    "git": "Git Settings",
+    "fontSize": "Font Size",
+    "tabSize": "Tab Size",
+    "wordWrap": "Word Wrap",
+    "autoSave": "Auto Save",
+    "userName": "User Name",
+    "userEmail": "User Email",
+    "userNamePlaceholder": "e.g. devin WLG",
+    "userEmailPlaceholder": "e.g. devin@example.com",
+    "save": "Save Configuration",
+    "saving": "Saving...",
+    "saved": "Workspace configuration saved",
+    "saveFailed": "Failed to save",
+    "openConfig": "Open Config File",
+    "loading": "Loading...",
+    "rootPath": "Workspace Root",
+    "rootPathDescription": "The root directory of the workspace",
+    "excludePatterns": "Exclude Patterns",
+    "excludePatternsDescription": "Patterns to exclude from file watching"
+  },
+  "appearance": {
+    "theme": "Theme",
+    "themeDescription": "Select the editor theme",
+    "themes": {
+      "dark": "Dark",
+      "light": "Light",
+      "system": "System",
+      "highContrast": "High Contrast"
+    }
+  },
+  "gitSettings": {
+    "title": "Git Identity",
+    "description": "Configure the Git identity used for commits",
+    "userName": "User Name",
+    "userEmail": "User Email",
+    "userNamePlaceholder": "Your Name",
+    "userEmailPlaceholder": "your@email.com",
+    "fillAll": "Please fill in all fields",
+    "saved": "Git configuration saved successfully!",
+    "saveFailed": "Failed to save configuration",
+    "save": "Save Configuration",
+    "saving": "Saving...",
+    "tipsTitle": "Tips:",
+    "tip1": "Your name and email will be attached to each commit",
+    "tip2": "Use the same email as your GitHub account",
+    "tip3": "You can change these settings at any time"
+  },
+  "api": "API",
+  "close": "Close",
+  "save": "Save",
+  "reset": "Reset to Default",
+  "language": "Language",
+  "langEn": "English",
+  "langZh": "Chinese"
+}

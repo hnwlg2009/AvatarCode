@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './FileTree.module.css';
 
 export interface IFileNode {
@@ -24,6 +25,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   className = '',
   rootPath = '/workspace',
 }) => {
+  const { t } = useTranslation();
   const [openDirs, setOpenDirs] = useState<Set<string>>(new Set());
 
   const toggleDir = useCallback((path: string) => {
@@ -101,9 +103,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
   );
 
   return (
-    <div className={`${styles.fileTree} ${className}`}>
+    <div className={`${styles.fileTree} ${className}`} data-testid="file-tree">
       {files.length === 0 ? (
-        <div className={styles.empty}>No files</div>
+        <div className={styles.empty}>{t('fileTree.empty')}</div>
       ) : (
         files.map((file) => renderNode(file))
       )}

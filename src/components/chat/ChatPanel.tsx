@@ -108,17 +108,16 @@ export const ChatPanel: React.FC = () => {
       <div className={styles.messages}>
         {messages.length === 0 ? (
           <div className={styles.emptyState}>
-            <p>{t('chat.greeting')}</p>
-            <p className={styles.hint}>
-              {t('chat.helpTitle')}
-              <br />
-              • {t('chat.helpExplain')}
-              <br />
-              • {t('chat.helpOptimize')}
-              <br />
-              • {t('chat.helpAnswer')}
-              <br />• {t('chat.helpGenerate')}
-            </p>
+            <p className={styles.greeting}>{t('chat.greeting')}</p>
+            <div className={styles.helpList}>
+              <p className={styles.helpTitle}>{t('chat.helpTitle')}</p>
+              <ul>
+                <li>{t('chat.helpExplain')}</li>
+                <li>{t('chat.helpOptimize')}</li>
+                <li>{t('chat.helpAnswer')}</li>
+                <li>{t('chat.helpGenerate')}</li>
+              </ul>
+            </div>
           </div>
         ) : (
           messages.map((message) => (
@@ -129,7 +128,7 @@ export const ChatPanel: React.FC = () => {
               } ${message.isError ? styles.error : ''}`}
             >
               <div className={styles.messageHeader}>
-                <span className={styles.role}>{message.role === 'user' ? `👤 ${t('chat.userRole')}` : `🤖 ${t('chat.aiRole')}`}</span>
+                <span className={styles.role}>{message.role === 'user' ? t('chat.userRole') : t('chat.aiRole')}</span>
                 <span className={styles.timestamp}>{formatTimestamp(message.timestamp)}</span>
               </div>
               <div className={styles.messageContent}>{renderMessageContent(message.content)}</div>
@@ -149,7 +148,7 @@ export const ChatPanel: React.FC = () => {
         {status === 'loading' && (
           <div className={styles.assistantMessage}>
             <div className={styles.messageHeader}>
-              <span className={styles.role}>🤖 AI</span>
+              <span className={styles.role}>AI</span>
             </div>
             <div className={styles.loading}>
               <div className={styles.loadingDots} />
