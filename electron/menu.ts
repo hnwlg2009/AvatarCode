@@ -30,14 +30,12 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
         isMac ? { label: t('menu.close'), role: 'close' } : { label: t('menu.quit'), role: 'quit' },
         {
           label: t('menu.openFile'),
-          accelerator: 'CmdOrCtrl+O',
           click: () => {
             mainWindow?.webContents.send('menu:open-file');
           },
         },
         {
           label: t('menu.save'),
-          accelerator: 'CmdOrCtrl+S',
           click: () => {
             mainWindow?.webContents.send('menu:save-file');
           },
@@ -45,7 +43,6 @@ export function createMenu(mainWindow: BrowserWindow | null): void {
         { type: 'separator' as const },
         {
           label: t('menu.newFile'),
-          accelerator: 'CmdOrCtrl+N',
           click: () => {
             mainWindow?.webContents.send('menu:new-file');
           },
