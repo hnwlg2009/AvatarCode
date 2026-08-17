@@ -68,3 +68,8 @@ logs
 !.monkeycode/rules/
 !.monkeycode/MEMORY.md
 !.monkeycode/module-overview.md
+
+# Local LLM credentials
+api-keys.json
+*.key.json
+*_keys.json
