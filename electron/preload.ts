@@ -74,6 +74,8 @@ const electronAPI = {
     validateAPIKey: (provider: string) => ipcRenderer.invoke('llm:validateAPIKey', provider),
     generate: (provider: string, messages: any[], options?: any) =>
       ipcRenderer.invoke('llm:generate', provider, messages, options),
+    cancel: (requestId: string) => ipcRenderer.invoke('llm:cancel', requestId),
+    listModels: (provider: string) => ipcRenderer.invoke('llm:listModels', provider),
   },
 
   // Command（需审批后执行）

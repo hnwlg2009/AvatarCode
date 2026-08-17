@@ -1,6 +1,7 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CodeEditor, CodeEditorRef } from '../editor';
+import { MarkdownPreview } from '../markdown/MarkdownPreview';
 import { useTabManagerStore } from '../../stores/tabManagerStore';
 import fileSystemService from '../../services/FileSystemService';
 import { openFileInWorkspace, saveActiveTab, createUntitledTab } from '../../utils/workspace';
@@ -10,6 +11,7 @@ import styles from './Workspace.module.css';
 export const Workspace: React.FC = () => {
   const { t } = useTranslation();
   const editorRef = useRef<CodeEditorRef>(null);
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
 
   const {
     tabs,
@@ -65,6 +67,11 @@ export const Workspace: React.FC = () => {
     [closeTab]
   );
 
+  // 切换文件时回到编辑模式
+  useEffect(() => {
+    setViewMode('edit');
+  }, [activeTabId]);
+
   // 键盘快捷键
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -107,13 +114,33 @@ export const Workspace: React.FC = () => {
           <>
             <div className={styles.fileTab}>
               <span className={styles.fileName}>{activeTab.path}</span>
+              {activeTab.language === 'markdown' && (
+                <div className={styles.viewToggle}>
+                  <button
+                    className={viewMode === 'edit' ? styles.toggleActive : ''}
+                    onClick={() => setViewMode('edit')}
+                  >
+                    {t('workspace.edit')}
+                  </button>
+                  <button
+                    className={viewMode === 'preview' ? styles.toggleActive : ''}
+                    onClick={() => setViewMode('preview')}
+                  >
+                    {t('workspace.preview')}
+                  </button>
+                </div>
+              )}
             </div>
-            <CodeEditor
-              ref={editorRef}
-              value={activeTab.content}
-              language={activeTab.language}
-              onChange={handleValueChange}
-            />
+            {viewMode === 'preview' ? (
+              <MarkdownPreview content={activeTab.content} />
+            ) : (
+              <CodeEditor
+                ref={editorRef}
+                value={activeTab.content}
+                language={activeTab.language}
+                onChange={handleValueChange}
+              />
+            )}
           </>
         ) : (
           <div className={styles.emptyState}>

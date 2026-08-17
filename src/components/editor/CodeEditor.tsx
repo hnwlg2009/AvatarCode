@@ -58,7 +58,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
     };
 
     return (
-      <div className={`${styles.container} ${className}`}>
+      <div className={`${styles.editorContainer} ${className}`}>
         <Editor
           height="100%"
           language={language}

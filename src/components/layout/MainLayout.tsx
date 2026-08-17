@@ -76,6 +76,16 @@ export const MainLayout: React.FC = () => {
     };
   }, [workspacePath]);
 
+  // 打开文件：失败时给出可见提示
+  const handleFileSelect = useCallback(async (filePath: string) => {
+    try {
+      await openFileInWorkspace(filePath);
+    } catch (error) {
+      console.error('Failed to open file:', error);
+      alert(t('explorer.openFileError') + '\n' + (error as Error).message);
+    }
+  }, [t]);
+
   // 菜单事件：切换侧栏
   useEffect(() => {
     const api = window.electronAPI;
@@ -147,7 +157,7 @@ export const MainLayout: React.FC = () => {
               <FileTree
                 rootPath={workspacePath}
                 files={fileNodes ?? []}
-                onFileSelect={openFileInWorkspace}
+                onFileSelect={handleFileSelect}
               />
             )}
           </>

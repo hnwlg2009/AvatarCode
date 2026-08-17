@@ -31,12 +31,15 @@
     "emptyHint": "Open a file to start editing",
     "openFile": "Open File",
     "saveFile": "Save File",
-    "selectFile": "Select File"
+    "selectFile": "Select File",
+    "edit": "Edit",
+    "preview": "Preview"
   },
   "explorer": {
     "openWorkspace": "Open Workspace",
     "noWorkspace": "No workspace opened",
-    "saveWorkspace": "Save Workspace Settings"
+    "saveWorkspace": "Save Workspace Settings",
+    "openFileError": "Failed to open file"
   },
   "api": {
     "apiKey": "API Key",

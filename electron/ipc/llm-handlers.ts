@@ -105,24 +105,45 @@ function parseToolCalls(message: any): any[] | undefined {
   });
 }
 
-const LLM_TIMEOUT_MS = 120_000;
+const LLM_TIMEOUT_MS = 300_000;
 
-async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+// 在途请求登记表：渲染层可通过 requestId 取消
+const inFlightRequests = new Map<string, AbortController>();
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs?: number,
+  cancelSignal?: AbortSignal
+): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs ?? LLM_TIMEOUT_MS);
+  const signal = cancelSignal
+    ? AbortSignal.any([controller.signal, cancelSignal])
+    : controller.signal;
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    return await fetch(url, { ...init, signal });
   } catch (error: any) {
     if (error?.name === 'AbortError') {
-      throw new Error(`LLM 请求超时（${LLM_TIMEOUT_MS / 1000}s）`);
+      if (cancelSignal?.aborted) {
+        throw new Error('请求已取消');
+      }
+      throw new Error(`LLM 请求超时（${(timeoutMs ?? LLM_TIMEOUT_MS) / 1000}s）`);
     }
-    throw error;
+    // 附上底层原因与目标地址，便于诊断（如 ECONNREFUSED / ENOTFOUND）
+    const cause = error?.cause?.message || error?.message || String(error);
+    throw new Error(`LLM 连接失败：${cause} (${url})`);
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function callOpenAI(apiKey: string, messages: any[], options?: any): Promise<any> {
+async function callOpenAI(
+  apiKey: string,
+  messages: any[],
+  options?: any,
+  cancelSignal?: AbortSignal
+): Promise<any> {
   const model = options?.model || keyManager.getModel('openai') || 'gpt-4';
   const baseUrl = options?.baseUrl || keyManager.getBaseUrl('openai') || 'https://api.openai.com/v1';
 
@@ -140,14 +161,19 @@ async function callOpenAI(apiKey: string, messages: any[], options?: any): Promi
     }));
   }
 
-  const response = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
+  const response = await fetchWithTimeout(
+    `${baseUrl}/chat/completions`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    options?.timeoutMs,
+    cancelSignal
+  );
 
   if (!response.ok) {
     const error: any = await response.json();
@@ -157,7 +183,8 @@ async function callOpenAI(apiKey: string, messages: any[], options?: any): Promi
   const data: any = await response.json();
   const message = data.choices[0]?.message;
   return {
-    content: message?.content ?? null,
+    // 推理模型可能仅返回 reasoning_content，此时回退使用
+    content: message?.content ?? message?.reasoning_content ?? null,
     toolCalls: parseToolCalls(message),
     usage: data.usage,
     model: data.model,
@@ -200,7 +227,13 @@ function toAnthropicMessages(messages: any[]): any[] {
     });
 }
 
-async function callAnthropic(apiKey: string, messages: any[], tools?: any[], options?: any): Promise<any> {
+async function callAnthropic(
+  apiKey: string,
+  messages: any[],
+  tools?: any[],
+  options?: any,
+  cancelSignal?: AbortSignal
+): Promise<any> {
   const model = options?.model || keyManager.getModel('anthropic') || 'claude-3-sonnet-20240229';
   const baseUrl = options?.baseUrl || keyManager.getBaseUrl('anthropic') || 'https://api.anthropic.com/v1';
 
@@ -228,15 +261,20 @@ async function callAnthropic(apiKey: string, messages: any[], tools?: any[], opt
     }));
   }
 
-  const response = await fetchWithTimeout(`${baseUrl}/messages`, {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01',
-    } as any,
-    body: JSON.stringify(body),
-  });
+  const response = await fetchWithTimeout(
+    `${baseUrl}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+      } as any,
+      body: JSON.stringify(body),
+    },
+    options?.timeoutMs,
+    cancelSignal
+  );
 
   if (!response.ok) {
     const error: any = await response.json();
@@ -296,7 +334,7 @@ export function setupLLMIpcHandlers(): void {
     return { valid: true };
   });
 
-  // 调用 LLM（使用主进程的 API Key），支持工具调用
+  // 调用 LLM（使用主进程的 API Key），支持工具调用与按 requestId 取消
   ipcMain.handle(
     'llm:generate',
     async (event, provider: string, messages: any[], options?: any) => {
@@ -306,20 +344,62 @@ export function setupLLMIpcHandlers(): void {
       }
 
       const tools: LLMToolSchema[] = options?.tools ?? [];
+      const requestId: string | undefined = options?.requestId;
+      const cancelController = new AbortController();
+      if (requestId) {
+        inFlightRequests.set(requestId, cancelController);
+      }
 
       try {
         if (provider === 'openai') {
-          return await callOpenAI(apiKey, messages, options);
+          return await callOpenAI(apiKey, messages, options, cancelController.signal);
         } else if (provider === 'anthropic') {
-          return await callAnthropic(apiKey, messages, tools, options);
+          return await callAnthropic(apiKey, messages, tools, options, cancelController.signal);
         } else {
           throw new Error(`不支持的 LLM 提供商：${provider}`);
         }
       } catch (error: any) {
         throw new Error(`LLM 请求失败：${error.message}`);
+      } finally {
+        if (requestId) {
+          inFlightRequests.delete(requestId);
+        }
       }
     }
   );
+
+  // 取消在途的 LLM 请求
+  ipcMain.handle('llm:cancel', (event, requestId: string) => {
+    const controller = inFlightRequests.get(requestId);
+    if (controller) {
+      controller.abort();
+      return { cancelled: true };
+    }
+    return { cancelled: false };
+  });
+
+  // 从 baseUrl 拉取模型列表（OpenAI 兼容服务，如 LM Studio / Ollama）
+  ipcMain.handle('llm:listModels', async (event, provider: string) => {
+    const config = keyManager.getConfig(provider);
+    const baseUrl = config.baseUrl;
+    if (!baseUrl) {
+      return { models: [], error: 'baseUrl 未配置' };
+    }
+    try {
+      const response = await fetchWithTimeout(`${baseUrl}/models`, {
+        method: 'GET',
+        headers: config.key ? { Authorization: `Bearer ${config.key}` } : {},
+      });
+      if (!response.ok) {
+        return { models: [], error: `HTTP ${response.status}` };
+      }
+      const data: any = await response.json();
+      const models: string[] = (data?.data ?? []).map((m: any) => m.id).filter(Boolean);
+      return { models, error: null };
+    } catch (error: any) {
+      return { models: [], error: error?.message || String(error) };
+    }
+  });
 }
 
 export default keyManager;

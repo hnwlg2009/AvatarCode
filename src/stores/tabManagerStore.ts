@@ -21,6 +21,7 @@ export interface TabManagerState {
   activateTab: (tabId: string) => void;
   updateTabContent: (tabId: string, content: string) => void;
   updateTabConfig: (tabId: string, config: Partial<IEditorConfig>) => void;
+  updateTabInfo: (tabId: string, info: Partial<Pick<ITab, 'path' | 'name' | 'language'>>) => void;
   markAsSaved: (tabId: string) => void;
   setTabError: (tabId: string, error?: string) => void;
   setTabLoading: (tabId: string, isLoading: boolean) => void;
@@ -80,6 +81,12 @@ export const useTabManagerStore = create<TabManagerState>((set, get) => ({
       tabs: state.tabs.map((tab) =>
         tab.id === tabId ? { ...tab, config: { ...tab.config, ...config } } : tab
       ),
+    }));
+  },
+
+  updateTabInfo: (tabId: string, info: Partial<Pick<ITab, 'path' | 'name' | 'language'>>) => {
+    set((state) => ({
+      tabs: state.tabs.map((tab) => (tab.id === tabId ? { ...tab, ...info } : tab)),
     }));
   },
 

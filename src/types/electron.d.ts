@@ -4,6 +4,8 @@ export interface LLMGenerateOptions {
   temperature?: number;
   maxTokens?: number;
   tools?: any[];
+  requestId?: string;
+  timeoutMs?: number;
 }
 
 export interface LLMGenerateResult {
@@ -105,6 +107,9 @@ export interface ElectronAPI {
   getVersion: () => Promise<string>;
   getPlatform: () => Promise<string>;
   getWorkspacePath: () => Promise<string | null>;
+  workspace: {
+    setPath: (dirPath: string) => Promise<string | null>;
+  };
   setWorkspacePath: (dirPath: string) => Promise<string | null>;
   openFileDialog: () => Promise<string | null>;
   saveFileDialog: () => Promise<string | null>;
@@ -146,6 +151,8 @@ export interface ElectronAPI {
     getProviderConfig: (provider: string) => Promise<ProviderConfigInfo>;
     validateAPIKey: (provider: string) => Promise<{ valid: boolean }>;
     generate: (provider: string, messages: any[], options?: LLMGenerateOptions) => Promise<LLMGenerateResult>;
+    cancel: (requestId: string) => Promise<{ cancelled: boolean }>;
+    listModels: (provider: string) => Promise<{ models: string[]; error: string | null }>;
   };
   command: {
     requestApproval: (command: string, cwd?: string) => Promise<CommandApprovalInfo>;

@@ -16,9 +16,39 @@
 .fileTab {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0.5rem 1rem;
   background-color: #1a1a1a;
   border-bottom: 1px solid #333;
+  flex-shrink: 0;
+}
+
+.viewToggle {
+  display: flex;
+  gap: 4px;
+  background-color: #141414;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.viewToggle button {
+  padding: 4px 14px;
+  font-size: 0.8125rem;
+  color: #999;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.viewToggle button:hover {
+  color: #e0e0e0;
+}
+
+.viewToggle .toggleActive {
+  background-color: #2d5bff;
+  color: #fff;
 }
 
 .fileName {

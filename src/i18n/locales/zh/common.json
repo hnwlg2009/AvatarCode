@@ -31,12 +31,15 @@
     "emptyHint": "打开文件开始编辑",
     "openFile": "打开文件",
     "saveFile": "保存文件",
-    "selectFile": "选择文件"
+    "selectFile": "选择文件",
+    "edit": "编辑",
+    "preview": "预览"
   },
   "explorer": {
     "openWorkspace": "打开工作区",
     "noWorkspace": "未打开工作区",
-    "saveWorkspace": "保存工作区配置"
+    "saveWorkspace": "保存工作区配置",
+    "openFileError": "无法打开文件"
   },
   "api": {
     "apiKey": "API Key",

@@ -30,13 +30,24 @@ function App() {
     window.electronAPI?.send('language-changed', language);
   }, [language]);
 
-  // 启动时恢复主进程记录的工作区路径
+  // 启动时恢复工作区路径；主进程重启后丢失授权，需重新声明
   useEffect(() => {
-    window.electronAPI?.getWorkspacePath().then((workspacePath) => {
-      if (workspacePath) {
-        setWorkspacePath(workspacePath);
+    const api = window.electronAPI;
+    if (!api) return;
+    const restore = async () => {
+      // 本次会话内主进程已记录的工作区
+      const mainPath = await api.getWorkspacePath();
+      if (mainPath) {
+        setWorkspacePath(mainPath);
+        return;
       }
-    });
+      // 上次会话持久化的工作区：重新授权（workspace:setPath 会 addAllowedPath）
+      const persisted = useSettingsStore.getState().workspacePath;
+      if (persisted) {
+        await api.workspace.setPath(persisted);
+      }
+    };
+    restore();
   }, [setWorkspacePath]);
 
   // 菜单事件：打开 / 保存 / 新建文件

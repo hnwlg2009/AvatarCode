@@ -30,8 +30,23 @@ export async function saveActiveTab(): Promise<boolean> {
   const activeTab = store.getActiveTab();
   if (!activeTab) return false;
 
+  let targetPath = activeTab.path;
+
+  // 未命名文件（虚拟路径）→ 弹另存为对话框，落盘后更新 tab 信息
+  if (targetPath.startsWith('Untitled-')) {
+    const savedPath = await fileSystemService.saveFileDialog();
+    if (!savedPath) return false;
+    const name = savedPath.split(/[\\/]/).pop() || savedPath;
+    store.updateTabInfo(activeTab.id, {
+      path: savedPath,
+      name,
+      language: fileSystemService.getFileLanguage(savedPath),
+    });
+    targetPath = savedPath;
+  }
+
   try {
-    await fileSystemService.writeFile(activeTab.path, activeTab.content);
+    await fileSystemService.writeFile(targetPath, activeTab.content);
     store.markAsSaved(activeTab.id);
     return true;
   } catch (error) {
